@@ -1,0 +1,10 @@
+{
+  "symbol": "XAUUSD",
+  "data_source": "GC=F - Gold Futures (ليس السعر الفوري)",
+  "signal": "BUY",
+  "price": 4074.9,
+  "ema20": 4073.16,
+  "ema50": 4072.27,
+  "updated_utc": "2026-11-08T05:55:55.548226+00:00",
+  "notice": "تحليل تجريبي وليس توصية مضمونة"
+}
