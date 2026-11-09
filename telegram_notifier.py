@@ -151,7 +151,7 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
         f"TP1: <code>{num(data['take_profit_1'])}</code>\n"
         f"TP2: <code>{num(data['take_profit_2'])}</code>\n"
         f"TP3: <code>{num(data['take_profit_3'])}</code>\n\n"
-        f"📈 آخر سعر مراقَب GC=F: <code>{num(quote['close'])}</code>\n"
+        f"📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
         f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\n"
         f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\n"
         f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\n"
@@ -282,12 +282,19 @@ def main():
         updated_age = (now - updated).total_seconds()
         candle_age = (now - candle).total_seconds()
 
-        bars = fetch_quote_bars()
-        latest = bars[-1]
-        quote_age = now.timestamp() - latest["ts"]
-        if quote_age > MAX_QUOTE_AGE_SECONDS:
-            raise RuntimeError(f"أسعار GC=F قديمة؛ عمر آخر شمعة سعرية {age_text(quote_age)}. لم يتم حسم أي صفقة.")
+        quote_error = None
+        try:
+            bars = fetch_quote_bars()
+        except Exception as quote_exc:
+            bars = []
+            quote_error = str(quote_exc)
+        latest = bars[-1] if bars else None
+        quote_age = (now.timestamp() - latest["ts"]) if latest else None
+        quote_stale = latest is None or quote_age > MAX_QUOTE_AGE_SECONDS
         events = []
+        if quote_stale:
+            detail = f" عمر آخر شمعة {age_text(quote_age)}." if quote_age is not None else f" السبب: {html.escape(quote_error or 'لا توجد بيانات أسعار')}."
+            events.append("⚠️ <b>أسعار GC=F غير متاحة أو قديمة.</b>" + detail + " لم يتم حسم أي صفقة دون سعر حديث.")
         current_key = signal_key(data, signal)
         active = state.setdefault("active_trades", [])
         closed = state.setdefault("closed_trades", [])
@@ -304,7 +311,7 @@ def main():
                     "candle_time": data["candle_time"],
                     "created_at": now.isoformat(), "status": "OPEN",
                     "highest_target": 0, "target_hit_times": {},
-                    "last_checked_bar": latest["ts"]
+                    "last_checked_bar": latest["ts"] if latest and not quote_stale else int(now.timestamp())
                 }
                 active.append(trade)
                 events.append(
@@ -320,7 +327,7 @@ def main():
 
         # Process all unseen one-minute bars in chronological order for every open trade.
         last_bar = int(state.get("last_bar_ts", 0))
-        new_bars = [b for b in bars if b["ts"] > last_bar]
+        new_bars = [b for b in bars if b["ts"] > last_bar] if not quote_stale else []
         for bar in new_bars:
             for trade in list(active):
                 process_bar_for_trade(trade, bar, events)
@@ -345,15 +352,21 @@ def main():
             events.insert(0, signal_message(data, signal, updated, candle, now, latest, updated_age, candle_age))
             state["last_announced_key"] = current_key
 
-        if updated_age > MAX_SIGNAL_AGE_SECONDS:
+        if quote_stale:
+            warning_key = "quote_stale"
+        elif updated_age > MAX_SIGNAL_AGE_SECONDS:
             warning_key = "signal_stale"
         elif candle_age > MAX_CANDLE_AGE_SECONDS:
             warning_key = "candle_stale"
         else:
             warning_key = None
         if warning_key and state.get("last_quote_warning") != warning_key:
-            events.append("⚠️ <b>تنبيه حداثة الإشارة:</b> " +
-                          ("updated_utc قديم." if warning_key == "signal_stale" else "candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة."))
+            warning_text = {
+                "quote_stale": "أسعار GC=F قديمة أو غير متاحة؛ لم يتم حسم أي صفقة.",
+                "signal_stale": "updated_utc قديم.",
+                "candle_stale": "candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة."
+            }[warning_key]
+            events.append("⚠️ <b>تنبيه حداثة البيانات:</b> " + warning_text)
         state["last_quote_warning"] = warning_key
 
         yday = now.astimezone(YEMEN).date()
@@ -388,7 +401,9 @@ def main():
                 send_telegram("👑 <b>أسطورة المجال</b>\n\n" + event + disclaimer)
         state["last_error"] = None
         save_state(state)
-        print(f"OK quote={num(latest['close'])} quote_age={int(quote_age)}s bars={len(new_bars)} active={len(state['active_trades'])} closed={len(state['closed_trades'])} messages={len(events)}")
+        quote_label = num(latest["close"]) if latest else "unavailable"
+        quote_age_label = f"{int(quote_age)}s" if quote_age is not None else "unavailable"
+        print(f"OK quote={quote_label} quote_age={quote_age_label} bars={len(new_bars)} active={len(state['active_trades'])} closed={len(state['closed_trades'])} messages={len(events)}")
     except Exception as exc:
         fingerprint = hashlib.sha256(str(exc).encode()).hexdigest()
         if state.get("last_error") != fingerprint:
