@@ -28,7 +28,11 @@ jobs:
               "take_profit": 4121,
               "stop_loss": 4095
           }
-          msg = "تم تفعيل الصفقة ✅"
+          msg = (
+              "🎯 <b>هدف الصفقة</b>\n"
+              "💰 الهدف: <code>4121</code>\n"
+              "📈 من الدخول 4101 إلى الهدف 4121 = <b>20 نقطة</b>"
+          )
           token = os.environ["TELEGRAM_BOT_TOKEN"]
           chat = os.environ["TELEGRAM_CHAT_ID"]
           body = urllib.parse.urlencode({
