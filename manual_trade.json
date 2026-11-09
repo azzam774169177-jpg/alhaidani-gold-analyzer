@@ -1,9 +1,8 @@
 {
   "symbol": "XAUUSD",
-  "side": "BUY",
-  "order_type": "BUY LIMIT",
-  "entry": 4101,
-  "take_profit": 4121,
-  "stop_loss": 4095,
-  "created_at": "2026-11-09T20:00:00+03:00"
+  "side": "SELL",
+  "order_type": "PENDING",
+  "entry": 4147,
+  "created_at": "2026-11-09T20:15:00+03:00",
+  "risk_method": "ATR14_15M_RR_1_2_3"
 }
