@@ -185,18 +185,20 @@ def trade_summary_line(trade):
 def process_bar_for_trade(trade, bar, events):
     if trade.get("status") != "OPEN" or bar["ts"] <= trade.get("last_checked_bar", 0):
         return
-    # If the same 1-minute candle touches stop and the next target, OHLC cannot reveal order.
     next_idx = int(trade.get("highest_target", 0))
-    next_target = next_idx < 3 and target_hit(trade, bar, next_idx)
+    # If this one-minute candle touches the stop and any remaining target,
+    # OHLC data cannot establish which price happened first: classify as ambiguous.
+    any_target = any(target_hit(trade, bar, i) for i in range(next_idx, 3))
     stopped = stop_hit(trade, bar)
-    if stopped and next_target:
+    if stopped and any_target:
         trade["status"] = "AMBIGUOUS_SL_AND_TP_SAME_CANDLE"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = None
         trade["ambiguous"] = True
+        trade["last_checked_bar"] = bar["ts"]
         events.append(
             "⚠️ <b>نتيجة غير محسومة داخل شمعة واحدة</b>\n"
-            f"الصفقة {trade['side']} دخول {num(trade['entry'])}: الشمعة لمست وقف الخسارة والهدف التالي معاً، "
+            f"الصفقة {trade['side']} دخول {num(trade['entry'])}: الشمعة لمست وقف الخسارة وهدفاً واحداً أو أكثر، "
             "ولا يمكن معرفة أيهما حدث أولاً من بيانات OHLC؛ لم نحتسبها ربحاً أو خسارة."
         )
         return
@@ -209,29 +211,36 @@ def process_bar_for_trade(trade, bar, events):
             outcome = f"🟠 <b>وصلت الصفقة إلى TP{trade['highest_target']} ثم عادت إلى وقف الخسارة</b>"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = float(trade["stop_loss"])
+        trade["last_checked_bar"] = bar["ts"]
         events.append(
             f"{outcome}\nالاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
             f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/3\n"
             "لم نحسب صافي النقاط للنتيجة المختلطة لأن نسبة الإغلاق الجزئي غير محددة."
         )
         return
-    if next_target:
-        idx = next_idx + 1
+    # Multiple targets can be crossed in one candle; record every reached level.
+    while trade.get("highest_target", 0) < 3:
+        idx = int(trade.get("highest_target", 0))
+        if not target_hit(trade, bar, idx):
+            break
+        idx += 1
         trade["highest_target"] = idx
         trade["target_hit_times"][str(idx)] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         target_price = trade["targets"][idx - 1]
-        points = abs(float(target_price) - float(trade["entry"]))
+        distance = abs(float(target_price) - float(trade["entry"]))
         events.append(
             f"🎯 <b>تم تحقيق TP{idx}</b>\n"
             f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
-            f"فرق السعر من الدخول: {num(points)}"
+            f"فرق السعر من الدخول: {num(distance)}"
         )
-        if idx == 3:
-            trade["status"] = "WIN_TP3"
-            trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
-            trade["close_price"] = float(target_price)
-            events.append("🏆 <b>اكتملت الصفقة عند الهدف الثالث TP3.</b>")
-    trade["last_checked_bar"] = bar["ts"]
+    if trade.get("highest_target", 0) == 3:
+        trade["status"] = "WIN_TP3"
+        trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
+        trade["close_price"] = float(trade["targets"][2])
+        trade["last_checked_bar"] = bar["ts"]
+        events.append("🏆 <b>اكتملت الصفقة عند الهدف الثالث TP3.</b>")
+    else:
+        trade["last_checked_bar"] = bar["ts"]
 
 def summarize(trades, start, end, title):
     rows = [t for t in trades if t.get("closed_at") and start <= parse_time(t["closed_at"]) < end]
