@@ -67,7 +67,17 @@ def send_telegram(message):
             detail = json.loads(detail).get("description", detail)
         except (json.JSONDecodeError, AttributeError):
             pass
-        raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]}") from exc
+        bot_identity = "تعذر التحقق من هوية البوت"
+        try:
+            check = urllib.request.urlopen(
+                f"https://api.telegram.org/bot{token}/getMe", timeout=15
+            )
+            me = json.loads(check.read().decode("utf-8"))
+            if me.get("ok"):
+                bot_identity = "البوت المرتبط بالرمز: @" + me["result"].get("username", "بدون اسم مستخدم")
+        except Exception as identity_error:
+            bot_identity = f"فشل getMe: {identity_error}"
+        raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]} | {bot_identity}") from exc
     if not result.get("ok"):
         raise RuntimeError(f"Telegram API رفض إرسال الرسالة: {result.get('description', 'سبب غير معروف')}")
     return True
