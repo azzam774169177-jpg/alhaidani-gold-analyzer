@@ -1,0 +1,56 @@
+name: Publish Manual Gold Trade
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - manual_trade.json
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send manual trade to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: "-1003819420479"
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          trade = {
+              "side": "BUY",
+              "order_type": "BUY LIMIT",
+              "symbol": "XAUUSD",
+              "entry": 4101,
+              "take_profit": 4121,
+              "stop_loss": 4095
+          }
+          msg = (
+              "👑 <b>أسطورة المجال | صفقة معلّقة</b>\n\n"
+              "🟢 <b>شراء الذهب XAUUSD</b>\n"
+              "📌 نوع الأمر: <b>Buy Limit</b>\n"
+              "💰 الدخول: <code>4101</code>\n"
+              "🎯 الهدف: <code>4121</code>\n"
+              "🛑 وقف الخسارة: <code>4095</code>\n\n"
+              "⚠️ أمر معلّق؛ لا يُعد منفذاً إلا عند وصول السعر إلى الدخول."
+          )
+          token = os.environ["TELEGRAM_BOT_TOKEN"]
+          chat = os.environ["TELEGRAM_CHAT_ID"]
+          body = urllib.parse.urlencode({
+              "chat_id": chat, "text": msg, "parse_mode": "HTML",
+              "disable_web_page_preview": "true"
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage",
+              data=body,
+              headers={"Content-Type": "application/x-www-form-urlencoded"}
+          )
+          with urllib.request.urlopen(req, timeout=25) as response:
+              result = json.loads(response.read().decode())
+          if not result.get("ok"):
+              raise RuntimeError(result.get("description", "Telegram send failed"))
+          print("Telegram message sent; message_id=" + str(result["result"]["message_id"]))
+          PY
