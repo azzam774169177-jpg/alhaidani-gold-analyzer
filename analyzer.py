@@ -8,7 +8,7 @@ import yfinance as yf
 
 def analyze():
     data = yf.download(
-        "GC=F",
+        "XAUUSD=X",
         period="5d",
         interval="15m",
         progress=False,
@@ -16,18 +16,18 @@ def analyze():
     )
 
     if data.empty:
-        return {"symbol": "XAUUSD", "signal": "WAIT", "reason": "لا توجد بيانات سوق"}
+        return {"symbol": "XAUUSD", "data_source": "XAUUSD=X - Yahoo Finance indicative spot quote", "timeframe": "15m", "signal": "WAIT", "reason": "لا توجد بيانات سوق", "price": 0, "entry": None, "stop_loss": None, "take_profit_1": None, "take_profit_2": None, "take_profit_3": None, "candle_time": datetime.now(timezone.utc).isoformat(), "updated_utc": datetime.now(timezone.utc).isoformat()}
 
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
     required = {"High", "Low", "Close"}
     if not required.issubset(data.columns):
-        return {"symbol": "XAUUSD", "signal": "WAIT", "reason": "بيانات OHLC غير مكتملة"}
+        return {"symbol": "XAUUSD", "data_source": "XAUUSD=X - Yahoo Finance indicative spot quote", "timeframe": "15m", "signal": "WAIT", "reason": "بيانات OHLC غير مكتملة", "price": 0, "entry": None, "stop_loss": None, "take_profit_1": None, "take_profit_2": None, "take_profit_3": None, "candle_time": datetime.now(timezone.utc).isoformat(), "updated_utc": datetime.now(timezone.utc).isoformat()}
 
     candles = data[["High", "Low", "Close"]].dropna()
     if len(candles) < 60:
-        return {"symbol": "XAUUSD", "signal": "WAIT", "reason": "بيانات غير كافية"}
+        return {"symbol": "XAUUSD", "data_source": "XAUUSD=X - Yahoo Finance indicative spot quote", "timeframe": "15m", "signal": "WAIT", "reason": "بيانات غير كافية", "price": 0, "entry": None, "stop_loss": None, "take_profit_1": None, "take_profit_2": None, "take_profit_3": None, "candle_time": datetime.now(timezone.utc).isoformat(), "updated_utc": datetime.now(timezone.utc).isoformat()}
 
     close, high, low = candles["Close"], candles["High"], candles["Low"]
     ema20 = close.ewm(span=20, adjust=False).mean()
@@ -67,7 +67,7 @@ def analyze():
 
     return {
         "symbol": "XAUUSD",
-        "data_source": "GC=F - COMEX Gold Futures proxy (Yahoo Finance; not spot XAUUSD)",
+        "data_source": "XAUUSD=X - Yahoo Finance indicative spot quote; verify against broker feed",
         "timeframe": "15m",
         "signal": signal,
         "reason": reason,
@@ -80,7 +80,7 @@ def analyze():
         "atr_14": round(atr_value, 2) if pd.notna(atr_value) else None,
         "ema20": round(e20, 2),
         "ema50": round(e50, 2),
-        "candle_time": str(candles.index[-1]),
+        "candle_time": candles.index[-1].to_pydatetime().replace(tzinfo=timezone.utc).isoformat() if hasattr(candles.index[-1], "to_pydatetime") else datetime.now(timezone.utc).isoformat(),
         "updated_utc": datetime.now(timezone.utc).isoformat(),
         "notice": "تحليل تجريبي؛ المستويات محسوبة من ATR وليست توصية مضمونة. تحقق من سعر وسيطك قبل التنفيذ."
     }
@@ -91,9 +91,17 @@ try:
 except Exception as error:
     result = {
         "symbol": "XAUUSD",
-        "data_source": "XAUUSD=X - Spot Gold indicative quote (Yahoo Finance)",
+        "data_source": "XAUUSD=X - Yahoo Finance indicative spot quote",
+        "timeframe": "15m",
         "signal": "WAIT",
-        "error": str(error),
+        "reason": "تعذر التحليل: " + str(error),
+        "price": 0,
+        "entry": None,
+        "stop_loss": None,
+        "take_profit_1": None,
+        "take_profit_2": None,
+        "take_profit_3": None,
+        "candle_time": datetime.now(timezone.utc).isoformat(),
         "updated_utc": datetime.now(timezone.utc).isoformat()
     }
 
