@@ -95,7 +95,7 @@ def fetch_quote_bars():
     result = payload.get("chart", {}).get("result")
     if not result:
         error = payload.get("chart", {}).get("error")
-        raise RuntimeError(f"تعذر الحصول على أسعار GC=F: {error}")
+        raise RuntimeError(f"تعذر الحصول على أسعار XAUUSD: {error}")
     item = result[0]
     timestamps = item.get("timestamp") or []
     quote = (item.get("indicators", {}).get("quote") or [{}])[0]
@@ -109,7 +109,7 @@ def fetch_quote_bars():
         except (IndexError, KeyError, TypeError, ValueError):
             continue
     if not bars:
-        raise RuntimeError("مصدر GC=F لم يُرجع شموعاً صالحة")
+        raise RuntimeError("مصدر XAUUSD لم يُرجع شموعاً صالحة")
     return bars
 
 def validate_signal(data):
@@ -151,11 +151,11 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
         f"TP1: <code>{num(data['take_profit_1'])}</code>\n"
         f"TP2: <code>{num(data['take_profit_2'])}</code>\n"
         f"TP3: <code>{num(data['take_profit_3'])}</code>\n\n"
-        f"📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
+        f"📈 آخر سعر مراقَب XAUUSD: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
         f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\n"
         f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\n"
         f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\n"
-        "⚠️ GC=F سعر ذهب فوري استرشادي XAUUSD، وقد يختلف عن سعر وسيطك."
+        "⚠️ XAUUSD سعر ذهب فوري استرشادي، وقد يختلف عن سعر وسيطك."
     )
     if updated_age > MAX_SIGNAL_AGE_SECONDS:
         msg += "\n⚠️ <b>تحذير: updated_utc قديم.</b>"
@@ -268,7 +268,7 @@ def summarize(trades, start, end, title):
         f"⏳ صفقات مفتوحة حالياً: {open_count}\n"
         f"نسبة النجاح بين صفقات TP3 والخسارة المباشرة: {rate:.1f}%\n"
         f"فرق السعر للصفقات المحسومة فقط (دولار/أونصة): +{gross_up:.2f} / {gross_down:.2f} / الصافي {net_delta:+.2f}\n"
-        "ملاحظة: هذا فرق سعري على GC=F وليس نقاط وسيط XAUUSD؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
+        "ملاحظة: هذا فرق سعري بالدولار لكل أونصة على XAUUSD وليس نقاط وسيطك؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
     )
 
 def main():
@@ -294,7 +294,7 @@ def main():
         events = []
         if quote_stale:
             detail = f" عمر آخر شمعة {age_text(quote_age)}." if quote_age is not None else f" السبب: {html.escape(quote_error or 'لا توجد بيانات أسعار')}."
-            events.append("⚠️ <b>أسعار GC=F غير متاحة أو قديمة.</b>" + detail + " لم يتم حسم أي صفقة دون سعر حديث.")
+            events.append("⚠️ <b>أسعار XAUUSD غير متاحة أو قديمة.</b>" + detail + " لم يتم حسم أي صفقة دون سعر حديث.")
         current_key = signal_key(data, signal)
         active = state.setdefault("active_trades", [])
         closed = state.setdefault("closed_trades", [])
@@ -362,7 +362,7 @@ def main():
             warning_key = None
         if warning_key and state.get("last_quote_warning") != warning_key:
             warning_text = {
-                "quote_stale": "أسعار GC=F قديمة أو غير متاحة؛ لم يتم حسم أي صفقة.",
+                "quote_stale": "أسعار XAUUSD قديمة أو غير متاحة؛ لم يتم حسم أي صفقة.",
                 "signal_stale": "updated_utc قديم.",
                 "candle_stale": "candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة."
             }[warning_key]
@@ -396,7 +396,7 @@ def main():
             state["last_monthly_key"] = month_key
 
         if events:
-            disclaimer = "\n\n<i>المراقبة تعتمد على XAUUSD من مصدر Yahoo Finance، وقد يختلف عن سعر وسيطك ولا على تنفيذ وسيطك. نتائج المراقبة آلية وغير مضمونة.</i>"
+            disclaimer = "\n\n<i>المراقبة تعتمد على سعر XAUUSD الاسترشادي من Yahoo Finance، وقد يختلف عن سعر وسيطك ولا تمثل سجلاً لتنفيذ الوسيط. نتائج المراقبة آلية وغير مضمونة.</i>"
             for event in events:
                 send_telegram("👑 <b>أسطورة المجال</b>\n\n" + event + disclaimer)
         state["last_error"] = None
