@@ -321,7 +321,7 @@ def process_bar_for_trade(trade, bar, events):
             outcome = "🛑 <b>تم ضرب وقف الخسارة</b>"
         else:
             trade["status"] = "MIXED_AFTER_TARGET"
-            outcome = f"🟠 <b>وصلت الصفقة إلى TP{trade['highest_target']} ثم عادت إلى وقف الخسارة</b>"
+            outcome = f"🛑 <b>تم ضرب وقف الخسارة بعد تحقيق TP{trade['highest_target']}</b>"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = float(trade["stop_loss"])
         trade["result_delta"] = favorable_distance(trade, trade["stop_loss"])
@@ -363,7 +363,7 @@ def summarize(trades, start, end, title):
     losses = sum(1 for t in rows if t["status"] == "LOSS")
     mixed = sum(1 for t in rows if t["status"] == "MIXED_AFTER_TARGET")
     ambiguous = sum(1 for t in rows if t["status"] == "AMBIGUOUS_SL_AND_TP_SAME_CANDLE")
-    open_count = sum(1 for t in trades if t.get("status") == "OPEN")
+    open_count = sum(1 for t in trades if t.get("status") in ("PENDING", "OPEN", "ACTIVE"))
     total = len(rows)
     decided = wins + losses
     rate = (wins / decided * 100) if decided else 0
