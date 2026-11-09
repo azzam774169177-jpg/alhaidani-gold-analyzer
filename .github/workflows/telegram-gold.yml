@@ -1,8 +1,6 @@
-name: Telegram Gold Signals
+name: Gold Analysis and Telegram Signals
 
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -15,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  notify:
+  gold-pipeline:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,22 +25,29 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.11"
 
-      - name: Check signal and send Telegram message
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Analyze latest gold data
+        run: python analyzer.py
+
+      - name: Send valid signals and monitor trades
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ""
           TELEGRAM_CHAT_IDS: "-1003819420479"
         run: python telegram_notifier.py
 
-      - name: Save notifier state
+      - name: Save signal and notifier state
         if: always() && steps.checkout.outcome == 'success'
         run: |
-          if ! git diff --quiet -- .telegram-state.json; then
+          if ! git diff --quiet -- signal.json .telegram-state.json; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .telegram-state.json
-            git commit -m "Update Telegram notifier state"
+            git add signal.json .telegram-state.json
+            git commit -m "Update gold signal and Telegram state"
+            git pull --rebase origin main
             git push
           fi
