@@ -1,42 +1,14 @@
-name: Update Gold Analysis
+name: Update Gold Analysis (manual only)
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
-concurrency:
-  group: gold-pipeline
-  cancel-in-progress: false
-
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  update:
+  note:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install requirements
-        run: pip install -r requirements.txt
-
-      - name: Run gold analyzer
-        run: python analyzer.py
-
-      - name: Save signal
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add signal.json
-          git commit -m "Update gold signal" || echo "No changes"
-          git push
+      - name: Use the combined Gold Analysis and Telegram Signals workflow
+        run: echo "Gold analysis now runs inside the Telegram workflow every five minutes."
