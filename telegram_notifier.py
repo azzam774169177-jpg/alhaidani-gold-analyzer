@@ -5,6 +5,7 @@ import html
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone, timedelta
@@ -57,10 +58,18 @@ def send_telegram(message):
         "disable_web_page_preview": "true"
     }).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    with urllib.request.urlopen(req, timeout=25) as response:
-        result = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=25) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            detail = json.loads(detail).get("description", detail)
+        except (json.JSONDecodeError, AttributeError):
+            pass
+        raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]}") from exc
     if not result.get("ok"):
-        raise RuntimeError("Telegram API رفض إرسال الرسالة")
+        raise RuntimeError(f"Telegram API رفض إرسال الرسالة: {result.get('description', 'سبب غير معروف')}")
     return True
 
 def load_state():
