@@ -66,6 +66,6 @@
   "last_weekly_key": "2026-W46",
   "last_monthly_key": null,
   "last_error": null,
-  "last_quote_warning": null,
+  "last_quote_warning": "quote_stale",
   "last_announced_key": "eb48bb8e011497997c459a123185ff47744a81094e5f3005437e271a135b8f07"
 }
