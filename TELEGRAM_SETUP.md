@@ -1,31 +1,35 @@
-# Telegram Gold Signals Setup
+# Telegram Gold Signals and Automatic Results Journal
 
-This repository sends validated `signal.json` updates to a Telegram group using GitHub Actions.
+This repository sends validated `signal.json` updates to Telegram and monitors published trade levels for TP/SL outcomes.
 
 ## Required GitHub Actions secrets
 
 In **Settings → Secrets and variables → Actions → New repository secret**, add:
 
-- `TELEGRAM_BOT_TOKEN`: the newly rotated BotFather token. Do not use the token previously exposed in chat.
-- `TELEGRAM_CHAT_ID`: the target Telegram group chat ID (usually a negative integer for a supergroup).
+- `TELEGRAM_BOT_TOKEN`: the newly rotated BotFather token. Never use the token exposed in chat.
+- `TELEGRAM_CHAT_ID`: the destination Telegram group chat ID.
 
-## Telegram setup
+The bot must be added to the group and permitted to send messages.
 
-1. Revoke the token that was exposed and create a new token with BotFather.
-2. Add the bot to the target group and allow it to send messages.
-3. Obtain the group chat ID securely (for example, use a temporary getUpdates check after sending a message in the group; do not post the bot token publicly).
-4. Add both GitHub secrets above.
+## Run
 
-## Run and verify
+Open **Actions → Telegram Gold Signals → Run workflow** for a manual run. Scheduled runs are configured every 5 minutes.
 
-Open **Actions → Telegram Gold Signals → Run workflow** to send a test report.
-The scheduled check runs every 5 minutes (GitHub Actions scheduled workflows have a 5-minute minimum interval).
+## Automatic TP/SL monitoring
 
-The notifier:
-- validates all required fields in `signal.json`;
-- checks `updated_utc` and `candle_time` independently;
-- sends on signal-file changes and a daily Yemen-time report;
-- alerts on a new data-access/validation error and on stale-data status transitions;
-- explicitly identifies `GC=F` as futures, not spot XAUUSD.
+- Reads `signal.json` and validates direction, entry, stop, targets, source and timestamps.
+- Gets one-minute GC=F OHLC bars from Yahoo Finance's chart endpoint.
+- Tracks each distinct BUY/SELL setup and reports TP1, TP2, TP3, stop-loss and ambiguous same-candle outcomes.
+- If one 1-minute candle touches both the next target and stop-loss, it marks the result **ambiguous** rather than guessing which came first.
+- Daily report is sent in Yemen time; weekly and monthly reports summarize the preceding period.
+- State and trade history are persisted in `.telegram-state.json` by the workflow.
 
-A file update is not evidence that the candle itself is fresh. This bot reports data; it does not guarantee trade outcomes or execute trades.
+## Important market-data and accounting limitations
+
+The current signal source is `GC=F` (gold futures), not spot `XAUUSD`. The monitor also uses GC=F one-minute bars, which can be delayed, unavailable during market closures, or differ from a broker's XAUUSD quote. It is not a broker execution record.
+
+The scheduled workflow checks at 5-minute intervals, so a brief price touch between checks can be missed if the provider does not retain the corresponding one-minute bar. When quotes are stale or unavailable, the bot alerts and does not classify a trade as a win or loss.
+
+The report shows price difference in USD per troy ounce for completed TP3/stop outcomes. It does not convert this into broker "points", because point conventions differ between brokers. If a target is reached and price later returns to stop, the result is marked mixed; exact net P&L requires the user's partial-close percentages and stop adjustment rules.
+
+The bot only reports market observations. It does not execute trades and does not guarantee outcomes or provide a guaranteed trading recommendation.
