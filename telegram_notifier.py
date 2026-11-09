@@ -360,8 +360,14 @@ def main():
         active = state.setdefault("active_trades", [])
         closed = state.setdefault("closed_trades", [])
 
-        # Register each distinct actionable setup once. WAIT is reported but is not a trade.
-        if signal in ("BUY", "SELL") and current_key != state.get("last_signal_key"):
+        # Register only actionable setups backed by fresh signal, candle, and quote data.
+        actionable_fresh = (
+            signal in ("BUY", "SELL")
+            and not quote_stale
+            and updated_age <= MAX_SIGNAL_AGE_SECONDS
+            and candle_age <= MAX_CANDLE_AGE_SECONDS
+        )
+        if actionable_fresh and current_key != state.get("last_signal_key"):
             existing = any(t.get("signal_key") == current_key for t in active + closed)
             if not existing:
                 trade = {
@@ -406,10 +412,8 @@ def main():
         state["closed_trades"] = [t for t in closed if not t.get("closed_at") or parse_time(t["closed_at"]) >= cutoff]
 
         # Signal message only when the setup changes, not on every timestamp refresh.
-        if signal in ("BUY", "SELL") and current_key != state.get("last_announced_key"):
-            events.insert(0, signal_message(data, signal, updated, candle, now, latest, updated_age, candle_age))
-            state["last_announced_key"] = current_key
-        if signal == "WAIT" and current_key != state.get("last_announced_key"):
+        # Publish ready BUY/SELL trades only. Never publish WAIT as if it were a trade.
+        if actionable_fresh and current_key != state.get("last_announced_key"):
             events.insert(0, signal_message(data, signal, updated, candle, now, latest, updated_age, candle_age))
             state["last_announced_key"] = current_key
 
