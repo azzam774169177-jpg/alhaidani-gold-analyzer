@@ -153,25 +153,27 @@ def fetch_quote_bars():
     return bars
 
 def validate_signal(data):
-    missing = [key for key in REQUIRED if key not in data or data[key] is None or data[key] == ""]
+    missing = [key for key in REQUIRED if key not in data or data[key] == ""]
     if missing:
         raise ValueError("حقول ناقصة: " + ", ".join(missing))
     signal = str(data["signal"]).upper()
     if signal not in ("BUY", "SELL", "WAIT"):
         raise ValueError("قيمة signal يجب أن تكون BUY أو SELL أو WAIT")
-    for key in ["price", "entry", "stop_loss"] + LEVELS:
-        if not isinstance(data[key], (int, float)) or isinstance(data[key], bool):
-            raise ValueError(f"الحقل {key} ليس رقماً")
+    if not isinstance(data["price"], (int, float)) or isinstance(data["price"], bool):
+        raise ValueError("الحقل price ليس رقماً")
     updated = parse_time(data["updated_utc"])
     candle = parse_time(data["candle_time"])
-    if signal == "BUY":
-        valid = data["stop_loss"] < data["entry"] < data["take_profit_1"] <= data["take_profit_2"] <= data["take_profit_3"]
-    elif signal == "SELL":
-        valid = data["stop_loss"] > data["entry"] > data["take_profit_1"] >= data["take_profit_2"] >= data["take_profit_3"]
-    else:
-        valid = True
-    if not valid:
-        raise ValueError("ترتيب مستويات الدخول ووقف الخسارة والأهداف غير منطقي لاتجاه الإشارة")
+    # WAIT is a valid no-trade state: levels may be null.
+    if signal in ("BUY", "SELL"):
+        for key in ["entry", "stop_loss"] + LEVELS:
+            if not isinstance(data[key], (int, float)) or isinstance(data[key], bool):
+                raise ValueError(f"الحقل {key} ليس رقماً لإشارة تداول فعلية")
+        if signal == "BUY":
+            valid = data["stop_loss"] < data["entry"] < data["take_profit_1"] <= data["take_profit_2"] <= data["take_profit_3"]
+        else:
+            valid = data["stop_loss"] > data["entry"] > data["take_profit_1"] >= data["take_profit_2"] >= data["take_profit_3"]
+        if not valid:
+            raise ValueError("ترتيب مستويات الدخول ووقف الخسارة والأهداف غير منطقي لاتجاه الإشارة")
     return signal, updated, candle
 
 def signal_key(data, signal):
@@ -183,24 +185,34 @@ def direction_ar(signal):
 
 def signal_message(data, signal, updated, candle, now, quote, updated_age, candle_age):
     msg = (
-        "👑 <b>أسطورة المجال | إشارة الذهب</b>\n\n"
-        f"<b>الاتجاه:</b> {direction_ar(signal)}\n"
-        f"💰 السعر عند النشر: <code>{num(data['price'])}</code>\n"
-        f"🎯 الدخول: <code>{num(data['entry'])}</code>\n"
-        f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\n"
-        f"TP1: <code>{num(data['take_profit_1'])}</code>\n"
-        f"TP2: <code>{num(data['take_profit_2'])}</code>\n"
-        f"TP3: <code>{num(data['take_profit_3'])}</code>\n\n"
-        f"📈 آخر سعر مراقَب للذهب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
-        f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\n"
-        f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\n"
-        f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\n"
+        "👑 <b>أسطورة المجال | إشارة الذهب</b>\\n\\n"
+        f"<b>الاتجاه:</b> {direction_ar(signal)}\\n"
+        f"💰 السعر عند التحليل: <code>{num(data['price'])}</code>\\n"
+    )
+    if signal == "WAIT":
+        msg += (
+            f"📝 السبب: {html.escape(str(data.get('reason', 'لا توجد فرصة واضحة حالياً')))}\\n"
+            "⛔ لا توجد صفقة؛ الدخول ووقف الخسارة والأهداف غير محددة.\\n"
+        )
+    else:
+        msg += (
+            f"🎯 الدخول: <code>{num(data['entry'])}</code>\\n"
+            f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\\n"
+            f"TP1: <code>{num(data['take_profit_1'])}</code>\\n"
+            f"TP2: <code>{num(data['take_profit_2'])}</code>\\n"
+            f"TP3: <code>{num(data['take_profit_3'])}</code>\\n"
+        )
+    msg += (
+        f"\\n📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\\n"
+        f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\\n"
+        f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\\n"
+        f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\\n"
         "⚠️ المصدر GC=F عقود ذهب آجلة وليس سعر XAUUSD الفوري، وقد يختلف عن سعر وسيطك."
     )
     if updated_age > MAX_SIGNAL_AGE_SECONDS:
-        msg += "\n⚠️ <b>تحذير: updated_utc قديم.</b>"
+        msg += "\\n⚠️ <b>تحذير: updated_utc قديم.</b>"
     if candle_age > MAX_CANDLE_AGE_SECONDS:
-        msg += "\n⚠️ <b>تحذير: candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة.</b>"
+        msg += "\\n⚠️ <b>تحذير: candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة.</b>"
     return msg
 
 def target_hit(trade, bar, target_index):
