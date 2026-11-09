@@ -8,7 +8,7 @@ import yfinance as yf
 
 def analyze():
     data = yf.download(
-        "GC=F",
+        "XAUUSD=X",
         period="5d",
         interval="15m",
         progress=False,
@@ -67,7 +67,7 @@ def analyze():
 
     return {
         "symbol": "XAUUSD",
-        "data_source": "GC=F - Gold Futures (ليس السعر الفوري XAUUSD)",
+        "data_source": "XAUUSD=X - Spot Gold indicative quote (Yahoo Finance)",
         "timeframe": "15m",
         "signal": signal,
         "reason": reason,
@@ -91,6 +91,7 @@ try:
 except Exception as error:
     result = {
         "symbol": "XAUUSD",
+        "data_source": "XAUUSD=X - Spot Gold indicative quote (Yahoo Finance)",
         "signal": "WAIT",
         "error": str(error),
         "updated_utc": datetime.now(timezone.utc).isoformat()
