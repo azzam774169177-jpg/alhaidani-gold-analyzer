@@ -89,8 +89,15 @@ def send_telegram(message):
                         membership += " | can_post_messages=" + str(info.get("can_post_messages"))
                 else:
                     membership = "فشل getChatMember: " + str(member.get("description"))
+        except urllib.error.HTTPError as identity_error:
+            try:
+                identity_body = identity_error.read().decode("utf-8", errors="replace")
+                identity_detail = json.loads(identity_body).get("description", identity_body)
+            except Exception:
+                identity_detail = "تعذر قراءة تفاصيل رد Telegram"
+            membership = f"فشل فحص Telegram API: HTTP {identity_error.code}: {identity_detail[:300]}"
         except Exception as identity_error:
-            membership = f"فشل فحص الهوية/العضوية: {identity_error}"
+            membership = f"فشل فحص الهوية/العضوية: {type(identity_error).__name__}: {identity_error}"
         raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]} | {bot_identity} | {membership}") from exc
     if not result.get("ok"):
         raise RuntimeError(f"Telegram API رفض إرسال الرسالة: {result.get('description', 'سبب غير معروف')}")
