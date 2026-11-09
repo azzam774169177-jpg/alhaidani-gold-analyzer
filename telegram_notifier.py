@@ -68,6 +68,7 @@ def send_telegram(message):
         except (json.JSONDecodeError, AttributeError):
             pass
         bot_identity = "تعذر التحقق من هوية البوت"
+        membership = "تعذر فحص عضوية البوت في القناة"
         try:
             check = urllib.request.urlopen(
                 f"https://api.telegram.org/bot{token}/getMe", timeout=15
@@ -75,9 +76,22 @@ def send_telegram(message):
             me = json.loads(check.read().decode("utf-8"))
             if me.get("ok"):
                 bot_identity = "البوت المرتبط بالرمز: @" + me["result"].get("username", "بدون اسم مستخدم")
+                bot_id = me["result"].get("id")
+                member_url = "https://api.telegram.org/bot" + token + "/getChatMember?" + urllib.parse.urlencode({
+                    "chat_id": chat_id, "user_id": bot_id
+                })
+                member_response = urllib.request.urlopen(member_url, timeout=15)
+                member = json.loads(member_response.read().decode("utf-8"))
+                if member.get("ok"):
+                    info = member.get("result", {})
+                    membership = "حالة البوت في القناة: " + str(info.get("status"))
+                    if info.get("status") == "administrator":
+                        membership += " | can_post_messages=" + str(info.get("can_post_messages"))
+                else:
+                    membership = "فشل getChatMember: " + str(member.get("description"))
         except Exception as identity_error:
-            bot_identity = f"فشل getMe: {identity_error}"
-        raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]} | {bot_identity}") from exc
+            membership = f"فشل فحص الهوية/العضوية: {identity_error}"
+        raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]} | {bot_identity} | {membership}") from exc
     if not result.get("ok"):
         raise RuntimeError(f"Telegram API رفض إرسال الرسالة: {result.get('description', 'سبب غير معروف')}")
     return True
