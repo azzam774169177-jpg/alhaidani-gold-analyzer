@@ -18,7 +18,7 @@ Open **Actions → Telegram Gold Signals → Run workflow** for a manual run. Sc
 ## Automatic TP/SL monitoring
 
 - Reads `signal.json` and validates direction, entry, stop, targets, source and timestamps.
-- Gets one-minute GC=F OHLC bars from Yahoo Finance's chart endpoint.
+- Gets one-minute XAUUSD spot indicative OHLC bars from Yahoo Finance's chart endpoint (ticker XAUUSD=X).
 - Tracks each distinct BUY/SELL setup and reports TP1, TP2, TP3, stop-loss and ambiguous same-candle outcomes.
 - If one 1-minute candle touches both the next target and stop-loss, it marks the result **ambiguous** rather than guessing which came first.
 - Daily report is sent in Yemen time; weekly and monthly reports summarize the preceding period.
@@ -26,7 +26,7 @@ Open **Actions → Telegram Gold Signals → Run workflow** for a manual run. Sc
 
 ## Important market-data and accounting limitations
 
-The current signal source is `GC=F` (gold futures), not spot `XAUUSD`. The monitor also uses GC=F one-minute bars, which can be delayed, unavailable during market closures, or differ from a broker's XAUUSD quote. It is not a broker execution record.
+The analysis and monitor now request Yahoo Finance ticker `XAUUSD=X` (spot gold indicative quote), not futures `GC=F`. This feed may be delayed, unavailable, or differ from your broker's XAUUSD quote. It is not a broker execution record.
 
 The scheduled workflow checks at 5-minute intervals, so a brief price touch between checks can be missed if the provider does not retain the corresponding one-minute bar. When quotes are stale or unavailable, the bot alerts and does not classify a trade as a win or loss.
 
