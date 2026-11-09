@@ -11,7 +11,7 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 
 SIGNAL_URL = "https://raw.githubusercontent.com/azzam774169177-jpg/alhaidani-gold-analyzer/main/signal.json"
-QUOTE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD%3DX?range=1d&interval=1m"
+QUOTE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?range=1d&interval=1m"
 STATE_PATH = ".telegram-state.json"
 REQUIRED = ["signal", "price", "entry", "stop_loss", "take_profit_1", "take_profit_2", "take_profit_3", "data_source", "candle_time", "updated_utc"]
 LEVELS = ["take_profit_1", "take_profit_2", "take_profit_3"]
@@ -140,11 +140,11 @@ def fetch_json(url, label):
         return json.loads(response.read().decode("utf-8"))
 
 def fetch_quote_bars():
-    payload = fetch_json(QUOTE_URL, "مصدر الذهب XAUUSD=X (سعر فوري استرشادي)")
+    payload = fetch_json(QUOTE_URL, "مصدر الذهب GC=F (عقد ذهب آجل استرشادي)")
     result = payload.get("chart", {}).get("result")
     if not result:
         error = payload.get("chart", {}).get("error")
-        raise RuntimeError(f"تعذر الحصول على أسعار الذهب الفورية الاسترشادية: {error}")
+        raise RuntimeError(f"تعذر الحصول على أسعار عقد الذهب الآجل الاسترشادية: {error}")
     item = result[0]
     timestamps = item.get("timestamp") or []
     quote = (item.get("indicators", {}).get("quote") or [{}])[0]
@@ -212,11 +212,11 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
             f"TP3: <code>{num(data['take_profit_3'])}</code>\\n"
         )
     msg += (
-        f"\\n📈 آخر سعر مراقَب XAUUSD=X: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\\n"
+        f"\\n📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\\n"
         f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\\n"
         f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\\n"
         f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\\n"
-        "⚠️ المصدر XAUUSD=X سعر استرشادي من Yahoo Finance وقد يختلف عن سعر وسيطك."
+        "⚠️ المصدر GC=F عقد ذهب آجل استرشادي من Yahoo Finance؛ قد يختلف عن XAUUSD لدى Weltrade."
     )
     if updated_age > MAX_SIGNAL_AGE_SECONDS:
         msg += "\\n⚠️ <b>تحذير: updated_utc قديم.</b>"
@@ -386,7 +386,7 @@ def main():
                     f"الاتجاه: {direction_ar(signal)}\n"
                     f"الدخول: {num(trade['entry'])} | SL: {num(trade['stop_loss'])}\n"
                     f"TP1: {num(trade['targets'][0])} | TP2: {num(trade['targets'][1])} | TP3: {num(trade['targets'][2])}\n"
-                    "ستُراقب مستويات TP/SL على شموع XAUUSD=X ذات الدقيقة الواحدة."
+                    "ستُراقب مستويات TP/SL على شموع GC=F ذات الدقيقة الواحدة."
                 )
             state["last_signal_key"] = current_key
         elif signal == "WAIT":
@@ -461,7 +461,7 @@ def main():
             state["last_monthly_key"] = month_key
 
         if events:
-            disclaimer = "\n\n<i>المراقبة تعتمد على سعر XAUUSD=X الاسترشادي من Yahoo Finance، وقد يختلف عن سعر وسيطك ولا تمثل سجلاً لتنفيذ الوسيط. نتائج المراقبة آلية وغير مضمونة.</i>"
+            disclaimer = "\n\n<i>المراقبة تعتمد على سعر GC=F الاسترشادي من Yahoo Finance، وقد يختلف عن سعر وسيطك ولا تمثل سجلاً لتنفيذ الوسيط. نتائج المراقبة آلية وغير مضمونة.</i>"
             for event in events:
                 send_telegram("👑 <b>أسطورة المجال</b>\n\n" + event + disclaimer)
         state["last_error"] = None
