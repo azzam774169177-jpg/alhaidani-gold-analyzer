@@ -29,9 +29,12 @@ jobs:
               "stop_loss": 4095
           }
           msg = (
-              "🎯 <b>هدف الصفقة</b>\n"
-              "💰 الهدف: <code>4121</code>\n"
-              "📈 من الدخول 4101 إلى الهدف 4121 = <b>20 نقطة</b>"
+              "🏆 <b>تم تحقيق هدف الصفقة ✅</b>\n\n"
+              "🥇 <b>XAUUSD شراء</b>\n"
+              "💰 الدخول: <code>4101</code>\n"
+              "🎯 الهدف: <code>4121</code>\n"
+              "📈 المحصلة: <b>+20 نقطة</b>\n\n"
+              "👑 أسطورة المجال — الحمدلله على الأرباح"
           )
           token = os.environ["TELEGRAM_BOT_TOKEN"]
           chat = os.environ["TELEGRAM_CHAT_ID"]
