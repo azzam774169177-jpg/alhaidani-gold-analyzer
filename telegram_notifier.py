@@ -291,7 +291,7 @@ def process_bar_for_trade(trade, bar, events):
         trade["status"] = "ACTIVE"
         trade["activated_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         events.append(
-            "✅ <b>تم تفعيل الصفقة</b>\n"
+            "<b>تم تفعيل الصفقة ✅</b>\n"
             f"الاتجاه: {trade['side']} | الزوج: XAUUSD | الدخول: {num(entry)}"
         )
         # Do not infer TP/SL ordering from the same one-minute candle that
