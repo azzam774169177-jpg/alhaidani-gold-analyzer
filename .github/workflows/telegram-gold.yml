@@ -1,13 +1,6 @@
 name: Gold Analysis and Telegram Signals
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - signal.json
-      - .telegram-state.json
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
