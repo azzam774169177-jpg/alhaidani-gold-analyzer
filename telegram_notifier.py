@@ -336,7 +336,8 @@ def main():
     state = load_state()
     now = utc_now()
     try:
-        data = fetch_json(SIGNAL_URL, "ملف الإشارة")
+        with open("signal.json", "r", encoding="utf-8") as signal_file:
+            data = json.load(signal_file)
         if not isinstance(data, dict):
             raise ValueError("محتوى signal.json ليس كائن JSON")
         signal, updated, candle = validate_signal(data)
