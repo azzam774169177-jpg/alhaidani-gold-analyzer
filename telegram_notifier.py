@@ -211,6 +211,7 @@ def process_bar_for_trade(trade, bar, events):
             outcome = f"🟠 <b>وصلت الصفقة إلى TP{trade['highest_target']} ثم عادت إلى وقف الخسارة</b>"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = float(trade["stop_loss"])
+        trade["result_delta"] = favorable_distance(trade, trade["stop_loss"])
         trade["last_checked_bar"] = bar["ts"]
         events.append(
             f"{outcome}\nالاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
@@ -237,6 +238,7 @@ def process_bar_for_trade(trade, bar, events):
         trade["status"] = "WIN_TP3"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = float(trade["targets"][2])
+        trade["result_delta"] = favorable_distance(trade, trade["targets"][2])
         trade["last_checked_bar"] = bar["ts"]
         events.append("🏆 <b>اكتملت الصفقة عند الهدف الثالث TP3.</b>")
     else:
@@ -252,6 +254,10 @@ def summarize(trades, start, end, title):
     total = len(rows)
     decided = wins + losses
     rate = (wins / decided * 100) if decided else 0
+    completed = [t for t in rows if t.get("status") in ("WIN_TP3", "LOSS") and isinstance(t.get("result_delta"), (int, float))]
+    gross_up = sum(max(0.0, float(t["result_delta"])) for t in completed)
+    gross_down = sum(min(0.0, float(t["result_delta"])) for t in completed)
+    net_delta = gross_up + gross_down
     return (
         f"📊 <b>{title}</b>\n"
         f"إجمالي الصفقات المغلقة: {total}\n"
@@ -261,7 +267,8 @@ def summarize(trades, start, end, title):
         f"⚠️ غير محسومة داخل شمعة: {ambiguous}\n"
         f"⏳ صفقات مفتوحة حالياً: {open_count}\n"
         f"نسبة النجاح بين صفقات TP3 والخسارة المباشرة: {rate:.1f}%\n"
-        "ملاحظة: لا يُحسب صافي النقاط للصفقات المختلطة قبل تحديد نسب الإغلاق الجزئي."
+        f"فرق السعر للصفقات المحسومة فقط (دولار/أونصة): +{gross_up:.2f} / {gross_down:.2f} / الصافي {net_delta:+.2f}\n"
+        "ملاحظة: هذا فرق سعري على GC=F وليس نقاط وسيط XAUUSD؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
     )
 
 def main():
