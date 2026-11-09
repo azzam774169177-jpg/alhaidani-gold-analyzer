@@ -67,20 +67,13 @@ jobs:
           last_candle = datetime.fromtimestamp(candles[-1][0], timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
           msg = (
-              "👑 <b>أسطورة المجال | صفقة ذهب معلّقة</b>\n\n"
-              "🔴 <b>بيع XAUUSD</b>\n"
-              "📌 نوع الدخول: <b>معلّق عند وصول السعر</b>\n"
-              f"💰 الدخول: <code>{ENTRY:.2f}</code>\n"
-              f"🛑 وقف الخسارة: <code>{stop:.2f}</code>\n"
-              f"🎯 الهدف الأول TP1: <code>{targets[0]:.2f}</code>\n"
-              f"🎯 الهدف الثاني TP2: <code>{targets[1]:.2f}</code>\n"
-              f"🎯 الهدف الثالث TP3: <code>{targets[2]:.2f}</code>\n\n"
-              f"📐 ATR(14): <code>{atr:.2f}</code> | المخاطرة: <code>{risk:.2f}</code>\n"
-              f"📊 السعر الاسترشادي الحالي: <code>{current_text}</code>\n"
-              f"🕯 آخر شمعة: <code>{last_candle}</code>\n\n"
-              "⚠️ تم حساب الاستوب والأهداف آلياً من ATR على إطار 15 دقيقة، "
-              "بنسبة عائد إلى مخاطرة 1:1 و1:2 و1:3. "
-              "المصدر GC=F استرشادي وقد يختلف عن سعر XAUUSD لدى وسيطك؛ تحقق من السعر قبل التنفيذ."
+              "👑 <b>أسطورة المجال | صفقة ذهب</b>\\n\\n"
+              "🔴 <b>بيع XAUUSD</b>\\n"
+              f"💰 الدخول: <code>{ENTRY:.2f}</code>\\n"
+              f"🛑 الاستوب: <code>{stop:.2f}</code>\\n"
+              f"🎯 TP1: <code>{targets[0]:.2f}</code>\\n"
+              f"🎯 TP2: <code>{targets[1]:.2f}</code>\\n"
+              f"🎯 TP3: <code>{targets[2]:.2f}</code>"
           )
           token = os.environ["TELEGRAM_BOT_TOKEN"]
           chat = os.environ["TELEGRAM_CHAT_ID"]
