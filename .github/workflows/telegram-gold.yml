@@ -1,6 +1,8 @@
 name: Gold Analysis and Telegram Signals
 
 on:
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
