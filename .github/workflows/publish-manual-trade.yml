@@ -67,12 +67,12 @@ jobs:
           last_candle = datetime.fromtimestamp(candles[-1][0], timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
           msg = (
-              "👑 <b>أسطورة المجال | صفقة ذهب</b>\\n\\n"
-              "🔴 <b>بيع XAUUSD</b>\\n"
-              f"💰 الدخول: <code>{ENTRY:.2f}</code>\\n"
-              f"🛑 الاستوب: <code>{stop:.2f}</code>\\n"
-              f"🎯 TP1: <code>{targets[0]:.2f}</code>\\n"
-              f"🎯 TP2: <code>{targets[1]:.2f}</code>\\n"
+              "👑 <b>أسطورة المجال | صفقة ذهب</b>\n\n"
+              "🔴 <b>بيع XAUUSD</b>\n"
+              f"💰 الدخول: <code>{ENTRY:.2f}</code>\n"
+              f"🛑 الاستوب: <code>{stop:.2f}</code>\n"
+              f"🎯 TP1: <code>{targets[0]:.2f}</code>\n"
+              f"🎯 TP2: <code>{targets[1]:.2f}</code>\n"
               f"🎯 TP3: <code>{targets[2]:.2f}</code>"
           )
           token = os.environ["TELEGRAM_BOT_TOKEN"]
