@@ -406,6 +406,7 @@ def main():
         quote_age = (now.timestamp() - latest["ts"]) if latest else None
         quote_stale = latest is None or quote_age > MAX_QUOTE_AGE_SECONDS
         events = []
+        trade_to_publish = None
         if quote_stale:
             detail = f" عمر آخر شمعة {age_text(quote_age)}." if quote_age is not None else f" السبب: {html.escape(quote_error or 'لا توجد بيانات أسعار')}."
             events.append("⚠️ <b>أسعار XAUUSD غير متاحة أو قديمة.</b>" + detail + " لم يتم حسم أي صفقة دون سعر حديث.")
@@ -434,7 +435,7 @@ def main():
                     "last_checked_bar": latest["ts"] if latest and not quote_stale else int(now.timestamp())
                 }
                 active.append(trade)
-                events.append(ready_trade_message(data, signal, state))
+                trade_to_publish = data
             state["last_signal_key"] = current_key
         elif signal == "WAIT":
             state["last_signal_key"] = current_key
@@ -505,28 +506,27 @@ def main():
             events.append(summarize(trades_all, start, end, "الجرد الشهري السابق"))
             state["last_monthly_key"] = month_key
 
-        if events:
-            disclaimer = "\n\n<i>المراقبة تعتمد على سعر GC=F الاسترشادي من Yahoo Finance، وقد يختلف عن سعر وسيطك ولا تمثل سجلاً لتنفيذ الوسيط. نتائج المراقبة آلية وغير مضمونة.</i>"
-            for event in events:
-                send_telegram("👑 <b>أسطورة المجال</b>\n\n" + event + disclaimer)
+        # Only send actionable trade setups. All non-trade chatter is suppressed.
+        if trade_to_publish is not None:
+            side = "شراء" if signal == "BUY" else "بيع"
+            icon = "🟢" if signal == "BUY" else "🔴"
+            message = (
+                "👑 أسطورة المجال | صفقة ذهب\\n\\n"
+                f"{icon} {side} XAUUSD\\n"
+                f"💰 الدخول: {num(trade_to_publish['entry'])}\\n"
+                f"🛑 الاستوب: {num(trade_to_publish['stop_loss'])}\\n"
+                f"🎯 TP1: {num(trade_to_publish['take_profit_1'])}\\n"
+                f"🎯 TP2: {num(trade_to_publish['take_profit_2'])}\\n"
+                f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}"
+            )
+            send_telegram(message)
         state["last_error"] = None
         save_state(state)
         quote_label = num(latest["close"]) if latest else "unavailable"
         quote_age_label = f"{int(quote_age)}s" if quote_age is not None else "unavailable"
         print(f"OK quote={quote_label} quote_age={quote_age_label} bars={len(new_bars)} active={len(state['active_trades'])} closed={len(state['closed_trades'])} messages={len(events)}")
     except Exception as exc:
-        fingerprint = hashlib.sha256(str(exc).encode()).hexdigest()
-        if state.get("last_error") != fingerprint:
-            try:
-                send_telegram(
-                    "🚨 <b>تعذر تحديث مراقبة الذهب وجرد الصفقات</b>\n\n"
-                    f"السبب: <code>{html.escape(str(exc)[:600])}</code>\n"
-                    "لم يتم اعتبار تعذر التحقق ربحاً أو خسارة، ولم تُغلق الصفقات المفتوحة."
-                )
-                state["last_error"] = fingerprint
-                save_state(state)
-            except Exception as telegram_error:
-                print(f"Telegram alert failed: {telegram_error}", file=sys.stderr)
+        # Errors stay in GitHub Actions logs; never send non-trade messages.
         print(f"ERROR: {exc}", file=sys.stderr)
         raise
 
