@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6",
-  "last_bar_ts": 1794253600,
+  "last_signal_key": "07c4b215fd1bf95bc42319b790b0bae428d229bf7a3c2970a78100e883f18251",
+  "last_bar_ts": 1794256442,
   "active_trades": [
     {
       "signal_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6",
@@ -15,10 +15,31 @@
       "signal_updated_utc": "2026-11-09T19:56:41.855494+00:00",
       "candle_time": "2026-11-09T19:45:00+00:00",
       "created_at": "2026-11-09T19:56:42.014533+00:00",
+      "status": "ACTIVE",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-09T20:02:00+00:00"
+      },
+      "last_checked_bar": 1794256442,
+      "activated_at": "2026-11-09T19:47:00+00:00"
+    },
+    {
+      "signal_key": "07c4b215fd1bf95bc42319b790b0bae428d229bf7a3c2970a78100e883f18251",
+      "side": "BUY",
+      "entry": 4155.6,
+      "stop_loss": 4143.4,
+      "targets": [
+        4167.8,
+        4180.01,
+        4192.21
+      ],
+      "signal_updated_utc": "2026-11-09T20:44:05.255838+00:00",
+      "candle_time": "2026-11-09T20:30:00+00:00",
+      "created_at": "2026-11-09T20:44:05.396110+00:00",
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794253600
+      "last_checked_bar": 1794256442
     }
   ],
   "closed_trades": [],
@@ -27,5 +48,5 @@
   "last_monthly_key": null,
   "last_error": null,
   "last_quote_warning": null,
-  "last_announced_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6"
+  "last_announced_key": "07c4b215fd1bf95bc42319b790b0bae428d229bf7a3c2970a78100e883f18251"
 }
