@@ -32,8 +32,8 @@ jobs:
       - name: Check signal and send Telegram message
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          TELEGRAM_CHAT_ID: ""
+          TELEGRAM_CHAT_IDS: "-1003819420479"
         run: python telegram_notifier.py
 
       - name: Save notifier state
