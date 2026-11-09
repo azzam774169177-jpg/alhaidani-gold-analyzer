@@ -1,19 +1,20 @@
 {
   "symbol": "XAUUSD",
-  "data_source": "GC=F - COMEX Gold Futures proxy (Yahoo Finance; not spot XAUUSD)",
+  "market_proxy": "GC=F",
+  "data_source": "GC=F - COMEX Gold Futures via Yahoo Finance (indicative proxy, not Weltrade)",
   "timeframe": "15m",
   "signal": "WAIT",
   "reason": "لا يوجد توافق واضح بين السعر والمتوسطات",
-  "price": 4115.3,
+  "price": 4111.1,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "atr_14": 13.09,
-  "ema20": 4125.01,
-  "ema50": 4118.9,
-  "candle_time": "2026-11-09 11:45:00-05:00",
-  "updated_utc": "2026-11-09T17:02:44.787250+00:00",
-  "notice": "تحليل تجريبي؛ المستويات محسوبة من ATR وليست توصية مضمونة. تحقق من سعر وسيطك قبل التنفيذ."
+  "atr_14": 8.29,
+  "ema20": 4121.23,
+  "ema50": 4118.14,
+  "candle_time": "2026-11-09T17:45:00+00:00",
+  "updated_utc": "2026-11-09T18:04:05.678830+00:00",
+  "notice": "تحليل آلي تجريبي على عقد الذهب الآجل GC=F؛ قد يختلف عن سعر XAUUSD لدى Weltrade. تحقق من السعر قبل التنفيذ."
 }
