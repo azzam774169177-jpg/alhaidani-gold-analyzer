@@ -3,6 +3,6 @@
   "side": "SELL",
   "order_type": "PENDING",
   "entry": 4147,
-  "created_at": "2026-11-09T19:02:00+03:00",
+  "created_at": "2026-11-09T19:03:00+03:00",
   "risk_method": "ATR14_15M_RR_1_2_3"
 }
