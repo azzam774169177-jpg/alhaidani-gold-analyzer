@@ -10,7 +10,7 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 
 SIGNAL_URL = "https://raw.githubusercontent.com/azzam774169177-jpg/alhaidani-gold-analyzer/main/signal.json"
-QUOTE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD%3DX?range=1d&interval=1m"
+QUOTE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/GC%3DF?range=1d&interval=1m"
 STATE_PATH = ".telegram-state.json"
 REQUIRED = ["signal", "price", "entry", "stop_loss", "take_profit_1", "take_profit_2", "take_profit_3", "data_source", "candle_time", "updated_utc"]
 LEVELS = ["take_profit_1", "take_profit_2", "take_profit_3"]
@@ -91,7 +91,7 @@ def fetch_json(url, label):
         return json.loads(response.read().decode("utf-8"))
 
 def fetch_quote_bars():
-    payload = fetch_json(QUOTE_URL, "مصدر أسعار XAUUSD")
+    payload = fetch_json(QUOTE_URL, "مصدر أسعار الذهب GC=F (عقود آجلة)")
     result = payload.get("chart", {}).get("result")
     if not result:
         error = payload.get("chart", {}).get("error")
@@ -151,11 +151,11 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
         f"TP1: <code>{num(data['take_profit_1'])}</code>\n"
         f"TP2: <code>{num(data['take_profit_2'])}</code>\n"
         f"TP3: <code>{num(data['take_profit_3'])}</code>\n\n"
-        f"📈 آخر سعر مراقَب XAUUSD: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
+        f"📈 آخر سعر مراقَب للذهب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
         f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\n"
         f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\n"
         f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\n"
-        "⚠️ XAUUSD سعر ذهب فوري استرشادي، وقد يختلف عن سعر وسيطك."
+        "⚠️ المصدر GC=F عقود ذهب آجلة وليس سعر XAUUSD الفوري، وقد يختلف عن سعر وسيطك."
     )
     if updated_age > MAX_SIGNAL_AGE_SECONDS:
         msg += "\n⚠️ <b>تحذير: updated_utc قديم.</b>"
@@ -268,7 +268,7 @@ def summarize(trades, start, end, title):
         f"⏳ صفقات مفتوحة حالياً: {open_count}\n"
         f"نسبة النجاح بين صفقات TP3 والخسارة المباشرة: {rate:.1f}%\n"
         f"فرق السعر للصفقات المحسومة فقط (دولار/أونصة): +{gross_up:.2f} / {gross_down:.2f} / الصافي {net_delta:+.2f}\n"
-        "ملاحظة: هذا فرق سعري بالدولار لكل أونصة على XAUUSD وليس نقاط وسيطك؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
+        "ملاحظة: هذا فرق سعري بالدولار لكل أونصة على GC=F وليس نقاط وسيطك؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
     )
 
 def main():
@@ -319,7 +319,7 @@ def main():
                     f"الاتجاه: {direction_ar(signal)}\n"
                     f"الدخول: {num(trade['entry'])} | SL: {num(trade['stop_loss'])}\n"
                     f"TP1: {num(trade['targets'][0])} | TP2: {num(trade['targets'][1])} | TP3: {num(trade['targets'][2])}\n"
-                    "ستُراقب مستويات TP/SL على شموع XAUUSD ذات الدقيقة الواحدة."
+                    "ستُراقب مستويات TP/SL على شموع الذهب GC=F ذات الدقيقة الواحدة."
                 )
             state["last_signal_key"] = current_key
         elif signal == "WAIT":
