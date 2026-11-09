@@ -49,58 +49,67 @@ def num(value):
 
 def send_telegram(message):
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
-    if not token or not chat_id:
-        raise RuntimeError("أضف TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_ID في GitHub Secrets")
+    # Prefer a comma-separated list for multiple destinations; retain the
+    # original single-chat secret as a backward-compatible fallback.
+    raw_chat_ids = os.environ.get("TELEGRAM_CHAT_IDS", "").strip()
+    if raw_chat_ids:
+        chat_ids = [item.strip() for item in raw_chat_ids.split(",") if item.strip()]
+    else:
+        single_chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+        chat_ids = [single_chat_id] if single_chat_id else []
+    if not token or not chat_ids:
+        raise RuntimeError("أضف TELEGRAM_BOT_TOKEN و TELEGRAM_CHAT_IDS (أو TELEGRAM_CHAT_ID) في GitHub Secrets")
+
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    body = urllib.parse.urlencode({
-        "chat_id": chat_id, "text": message, "parse_mode": "HTML",
-        "disable_web_page_preview": "true"
-    }).encode()
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    try:
-        with urllib.request.urlopen(req, timeout=25) as response:
-            result = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
+    for chat_id in chat_ids:
+        body = urllib.parse.urlencode({
+            "chat_id": chat_id, "text": message, "parse_mode": "HTML",
+            "disable_web_page_preview": "true"
+        }).encode()
+        req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
         try:
-            detail = json.loads(detail).get("description", detail)
-        except (json.JSONDecodeError, AttributeError):
-            pass
-        bot_identity = "تعذر التحقق من هوية البوت"
-        membership = "تعذر فحص عضوية البوت في القناة"
-        try:
-            check = urllib.request.urlopen(
-                f"https://api.telegram.org/bot{token}/getMe", timeout=15
-            )
-            me = json.loads(check.read().decode("utf-8"))
-            if me.get("ok"):
-                bot_identity = "البوت المرتبط بالرمز: @" + me["result"].get("username", "بدون اسم مستخدم")
-                bot_id = me["result"].get("id")
-                member_url = "https://api.telegram.org/bot" + token + "/getChatMember?" + urllib.parse.urlencode({
-                    "chat_id": chat_id, "user_id": bot_id
-                })
-                member_response = urllib.request.urlopen(member_url, timeout=15)
-                member = json.loads(member_response.read().decode("utf-8"))
-                if member.get("ok"):
-                    info = member.get("result", {})
-                    membership = "حالة البوت في القناة: " + str(info.get("status"))
-                    if info.get("status") == "administrator":
-                        membership += " | can_post_messages=" + str(info.get("can_post_messages"))
-                else:
-                    membership = "فشل getChatMember: " + str(member.get("description"))
-        except urllib.error.HTTPError as identity_error:
+            with urllib.request.urlopen(req, timeout=25) as response:
+                result = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
             try:
-                identity_body = identity_error.read().decode("utf-8", errors="replace")
-                identity_detail = json.loads(identity_body).get("description", identity_body)
-            except Exception:
-                identity_detail = "تعذر قراءة تفاصيل رد Telegram"
-            membership = f"فشل فحص Telegram API: HTTP {identity_error.code}: {identity_detail[:300]}"
-        except Exception as identity_error:
-            membership = f"فشل فحص الهوية/العضوية: {type(identity_error).__name__}: {identity_error}"
-        raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]} | {bot_identity} | {membership}") from exc
-    if not result.get("ok"):
-        raise RuntimeError(f"Telegram API رفض إرسال الرسالة: {result.get('description', 'سبب غير معروف')}")
+                detail = json.loads(detail).get("description", detail)
+            except (json.JSONDecodeError, AttributeError):
+                pass
+            bot_identity = "تعذر التحقق من هوية البوت"
+            membership = "تعذر فحص عضوية البوت في الوجهة " + chat_id
+            try:
+                check = urllib.request.urlopen(
+                    f"https://api.telegram.org/bot{token}/getMe", timeout=15
+                )
+                me = json.loads(check.read().decode("utf-8"))
+                if me.get("ok"):
+                    bot_identity = "البوت المرتبط بالرمز: @" + me["result"].get("username", "بدون اسم مستخدم")
+                    bot_id = me.get("result", {}).get("id")
+                    member_url = "https://api.telegram.org/bot" + token + "/getChatMember?" + urllib.parse.urlencode({
+                        "chat_id": chat_id, "user_id": bot_id
+                    })
+                    member_response = urllib.request.urlopen(member_url, timeout=15)
+                    member = json.loads(member_response.read().decode("utf-8"))
+                    if member.get("ok"):
+                        info = member.get("result", {})
+                        membership = "حالة البوت في الوجهة " + chat_id + ": " + str(info.get("status"))
+                        if info.get("status") == "administrator":
+                            membership += " | can_post_messages=" + str(info.get("can_post_messages"))
+                    else:
+                        membership = "فشل getChatMember: " + str(member.get("description"))
+            except urllib.error.HTTPError as identity_error:
+                try:
+                    identity_body = identity_error.read().decode("utf-8", errors="replace")
+                    identity_detail = json.loads(identity_body).get("description", identity_body)
+                except Exception:
+                    identity_detail = "تعذر قراءة تفاصيل رد Telegram"
+                membership = f"فشل فحص Telegram API: HTTP {identity_error.code}: {identity_detail[:300]}"
+            except Exception as identity_error:
+                membership = f"فشل فحص الهوية/العضوية: {type(identity_error).__name__}: {identity_error}"
+            raise RuntimeError(f"Telegram API HTTP {exc.code}: {detail[:500]} | {bot_identity} | {membership}") from exc
+        if not result.get("ok"):
+            raise RuntimeError(f"Telegram رفض الإرسال إلى {chat_id}: {result.get('description', 'سبب غير معروف')}")
     return True
 
 def load_state():
