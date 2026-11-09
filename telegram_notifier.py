@@ -194,34 +194,34 @@ def direction_ar(signal):
 
 def signal_message(data, signal, updated, candle, now, quote, updated_age, candle_age):
     msg = (
-        "👑 <b>أسطورة المجال | إشارة الذهب</b>\\n\\n"
-        f"<b>الاتجاه:</b> {direction_ar(signal)}\\n"
-        f"💰 السعر عند التحليل: <code>{num(data['price'])}</code>\\n"
+        "👑 <b>أسطورة المجال | إشارة الذهب</b>\n\n"
+        f"<b>الاتجاه:</b> {direction_ar(signal)}\n"
+        f"💰 السعر عند التحليل: <code>{num(data['price'])}</code>\n"
     )
     if signal == "WAIT":
         msg += (
-            f"📝 السبب: {html.escape(str(data.get('reason', 'لا توجد فرصة واضحة حالياً')))}\\n"
-            "⛔ لا توجد صفقة؛ الدخول ووقف الخسارة والأهداف غير محددة.\\n"
+            f"📝 السبب: {html.escape(str(data.get('reason', 'لا توجد فرصة واضحة حالياً')))}\n"
+            "⛔ لا توجد صفقة؛ الدخول ووقف الخسارة والأهداف غير محددة.\n"
         )
     else:
         msg += (
-            f"🎯 الدخول: <code>{num(data['entry'])}</code>\\n"
-            f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\\n"
-            f"TP1: <code>{num(data['take_profit_1'])}</code>\\n"
-            f"TP2: <code>{num(data['take_profit_2'])}</code>\\n"
-            f"TP3: <code>{num(data['take_profit_3'])}</code>\\n"
+            f"🎯 الدخول: <code>{num(data['entry'])}</code>\n"
+            f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\n"
+            f"TP1: <code>{num(data['take_profit_1'])}</code>\n"
+            f"TP2: <code>{num(data['take_profit_2'])}</code>\n"
+            f"TP3: <code>{num(data['take_profit_3'])}</code>\n"
         )
     msg += (
-        f"\\n📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\\n"
-        f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\\n"
-        f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\\n"
-        f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\\n"
+        f"\n📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
+        f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\n"
+        f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\n"
+        f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\n"
         "⚠️ المصدر GC=F عقد ذهب آجل استرشادي من Yahoo Finance؛ قد يختلف عن XAUUSD لدى Weltrade."
     )
     if updated_age > MAX_SIGNAL_AGE_SECONDS:
-        msg += "\\n⚠️ <b>تحذير: updated_utc قديم.</b>"
+        msg += "\n⚠️ <b>تحذير: updated_utc قديم.</b>"
     if candle_age > MAX_CANDLE_AGE_SECONDS:
-        msg += "\\n⚠️ <b>تحذير: candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة.</b>"
+        msg += "\n⚠️ <b>تحذير: candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة.</b>"
     return msg
 
 def historical_success_rate(state):
@@ -511,12 +511,12 @@ def main():
             side = "شراء" if signal == "BUY" else "بيع"
             icon = "🟢" if signal == "BUY" else "🔴"
             message = (
-                "👑 أسطورة المجال | صفقة ذهب\\n\\n"
-                f"{icon} {side} XAUUSD\\n"
-                f"💰 الدخول: {num(trade_to_publish['entry'])}\\n"
-                f"🛑 الاستوب: {num(trade_to_publish['stop_loss'])}\\n"
-                f"🎯 TP1: {num(trade_to_publish['take_profit_1'])}\\n"
-                f"🎯 TP2: {num(trade_to_publish['take_profit_2'])}\\n"
+                "👑 أسطورة المجال | صفقة ذهب\n\n"
+                f"{icon} {side} XAUUSD\n"
+                f"💰 الدخول: {num(trade_to_publish['entry'])}\n"
+                f"🛑 الاستوب: {num(trade_to_publish['stop_loss'])}\n"
+                f"🎯 TP1: {num(trade_to_publish['take_profit_1'])}\n"
+                f"🎯 TP2: {num(trade_to_publish['take_profit_2'])}\n"
                 f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}"
             )
             send_telegram(message)
