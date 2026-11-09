@@ -224,6 +224,34 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
         msg += "\\n⚠️ <b>تحذير: candle_time قديم؛ تحديث الملف لا يثبت حداثة الشمعة.</b>"
     return msg
 
+def historical_success_rate(state):
+    rows = [t for t in state.get("closed_trades", []) if t.get("status") in ("WIN_TP3", "LOSS")]
+    wins = sum(1 for t in rows if t.get("status") == "WIN_TP3")
+    total = len(rows)
+    if total < 20:
+        return f"📊 نسبة النجاح التاريخية: قيد التجميع ({wins} نجاح من {total} صفقة محسومة؛ يلزم 20 صفقة على الأقل)"
+    return f"📊 نسبة النجاح التاريخية: {wins / total * 100:.1f}% ({wins} من {total} صفقة محسومة)"
+
+
+def ready_trade_message(data, signal, state):
+    side = "🟢 شراء BUY" if signal == "BUY" else "🔴 بيع SELL"
+    return (
+        "👑 <b>أسطورة المجال | صفقة ذهب جاهزة</b>\\n\\n"
+        f"📌 الاتجاه: <b>{side}</b>\\n"
+        f"💰 سعر الدخول: <code>{num(data['entry'])}</code>\\n"
+        f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\\n"
+        f"🎯 الهدف الأول: <code>{num(data['take_profit_1'])}</code>\\n"
+        f"🎯 الهدف الثاني: <code>{num(data['take_profit_2'])}</code>\\n"
+        f"🎯 الهدف الثالث: <code>{num(data['take_profit_3'])}</code>\\n\\n"
+        f"{historical_success_rate(state)}\\n"
+        f"🕯 الإطار: {html.escape(str(data.get('timeframe', '15m')))}\\n"
+        f"📝 السبب الفني: {html.escape(str(data.get('reason', 'توافق فني')))}\\n"
+        f"🕒 وقت التحليل: {fmt_time(parse_time(data['updated_utc']))}\\n"
+        "⚠️ النسبة تاريخية للصفقات المحسومة فقط وليست توقعاً أو ضماناً لنجاح الصفقة الحالية. "
+        "السعر المرجعي GC=F قد يختلف عن سعر XAUUSD لدى وسيطك."
+    )
+
+
 def target_hit(trade, bar, target_index):
     level = float(trade["targets"][target_index])
     if trade["side"] == "BUY":
@@ -382,13 +410,7 @@ def main():
                     "last_checked_bar": latest["ts"] if latest and not quote_stale else int(now.timestamp())
                 }
                 active.append(trade)
-                events.append(
-                    "📣 <b>بدأت مراقبة صفقة جديدة</b>\n"
-                    f"الاتجاه: {direction_ar(signal)}\n"
-                    f"الدخول: {num(trade['entry'])} | SL: {num(trade['stop_loss'])}\n"
-                    f"TP1: {num(trade['targets'][0])} | TP2: {num(trade['targets'][1])} | TP3: {num(trade['targets'][2])}\n"
-                    "ستُراقب مستويات TP/SL على شموع GC=F ذات الدقيقة الواحدة."
-                )
+                events.append(ready_trade_message(data, signal, state))
             state["last_signal_key"] = current_key
         elif signal == "WAIT":
             state["last_signal_key"] = current_key
@@ -412,9 +434,7 @@ def main():
         cutoff = now - timedelta(days=370)
         state["closed_trades"] = [t for t in closed if not t.get("closed_at") or parse_time(t["closed_at"]) >= cutoff]
 
-        # Publish the latest analysis on every scheduled pipeline run, including WAIT.
-        # WAIT is explicitly an analysis update, never presented as an executable trade.
-        events.insert(0, signal_message(data, signal, updated, candle, now, latest, updated_age, candle_age))
+        # Publish only new actionable BUY/SELL setups; never broadcast WAIT updates.
         if actionable_fresh:
             state["last_announced_key"] = current_key
 
