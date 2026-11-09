@@ -1,11 +1,31 @@
 {
-  "last_signal_key": "b9cbb7bd6cabdda38957f3ebdbfed8047a8f086d4fc2c3ff43fc64f42b94b3af",
-  "last_bar_ts": 1794249966,
-  "active_trades": [],
+  "last_signal_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6",
+  "last_bar_ts": 1794253600,
+  "active_trades": [
+    {
+      "signal_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6",
+      "side": "BUY",
+      "entry": 4138.4,
+      "stop_loss": 4127.29,
+      "targets": [
+        4149.51,
+        4160.62,
+        4171.73
+      ],
+      "signal_updated_utc": "2026-11-09T19:56:41.855494+00:00",
+      "candle_time": "2026-11-09T19:45:00+00:00",
+      "created_at": "2026-11-09T19:56:42.014533+00:00",
+      "status": "PENDING",
+      "highest_target": 0,
+      "target_hit_times": {},
+      "last_checked_bar": 1794253600
+    }
+  ],
   "closed_trades": [],
   "last_daily_yemen_day": "2026-11-09",
   "last_weekly_key": "2026-W46",
   "last_monthly_key": null,
   "last_error": null,
-  "last_quote_warning": null
+  "last_quote_warning": null,
+  "last_announced_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6"
 }
