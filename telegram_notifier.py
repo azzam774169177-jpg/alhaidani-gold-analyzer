@@ -236,7 +236,8 @@ def historical_success_rate(state):
 def ready_trade_message(data, signal, state):
     side = "🟢 شراء BUY" if signal == "BUY" else "🔴 بيع SELL"
     return (
-        "👑 <b>أسطورة المجال | صفقة ذهب جاهزة</b>\n\n"
+        "👑 <b>أسطورة المجال | صفقة XAUUSD جاهزة</b>\n\n"
+        "🥇 الزوج: <b>XAUUSD</b>\n"
         f"📌 الاتجاه: <b>{side}</b>\n"
         f"💰 سعر الدخول: <code>{num(data['entry'])}</code>\n"
         f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\n"
@@ -248,7 +249,7 @@ def ready_trade_message(data, signal, state):
         f"📝 السبب الفني: {html.escape(str(data.get('reason', 'توافق فني')))}\n"
         f"🕒 وقت التحليل: {fmt_time(parse_time(data['updated_utc']))}\n"
         "⚠️ النسبة تاريخية للصفقات المحسومة فقط وليست توقعاً أو ضماناً لنجاح الصفقة الحالية. "
-        "السعر المرجعي GC=F قد يختلف عن سعر XAUUSD لدى وسيطك."
+        "تحقق من سعر XAUUSD لدى وسيطك قبل التنفيذ؛ قد يختلف السعر المرجعي عن سعر التنفيذ."
     )
 
 
