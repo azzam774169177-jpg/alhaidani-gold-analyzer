@@ -273,8 +273,31 @@ def trade_summary_line(trade):
     return f"{side} | دخول {num(trade['entry'])} | أفضل هدف {trade.get('highest_target', 0)}/3 | الحالة: {html.escape(trade['status'])}"
 
 def process_bar_for_trade(trade, bar, events):
-    if trade.get("status") != "OPEN" or bar["ts"] <= trade.get("last_checked_bar", 0):
+    status = trade.get("status")
+    if status not in ("PENDING", "OPEN", "ACTIVE") or bar["ts"] <= trade.get("last_checked_bar", 0):
         return
+
+    # New setups wait for price to reach the entry. Legacy OPEN trades remain
+    # monitored as already activated so existing state is not lost.
+    if status == "PENDING":
+        entry = float(trade["entry"])
+        reached_entry = (
+            bar["low"] <= entry if trade["side"] == "BUY"
+            else bar["high"] >= entry
+        )
+        trade["last_checked_bar"] = bar["ts"]
+        if not reached_entry:
+            return
+        trade["status"] = "ACTIVE"
+        trade["activated_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
+        events.append(
+            "✅ <b>تم تفعيل الصفقة</b>\n"
+            f"الاتجاه: {trade['side']} | الزوج: XAUUSD | الدخول: {num(entry)}"
+        )
+        # Do not infer TP/SL ordering from the same one-minute candle that
+        # first activated the setup; begin outcome monitoring on the next bar.
+        return
+
     next_idx = int(trade.get("highest_target", 0))
     # If this one-minute candle touches the stop and any remaining target,
     # OHLC data cannot establish which price happened first: classify as ambiguous.
@@ -295,7 +318,7 @@ def process_bar_for_trade(trade, bar, events):
     if stopped:
         if trade.get("highest_target", 0) == 0:
             trade["status"] = "LOSS"
-            outcome = "🔴 <b>ضرب وقف الخسارة قبل أي هدف</b>"
+            outcome = "🛑 <b>تم ضرب وقف الخسارة</b>"
         else:
             trade["status"] = "MIXED_AFTER_TARGET"
             outcome = f"🟠 <b>وصلت الصفقة إلى TP{trade['highest_target']} ثم عادت إلى وقف الخسارة</b>"
@@ -320,7 +343,7 @@ def process_bar_for_trade(trade, bar, events):
         target_price = trade["targets"][idx - 1]
         distance = abs(float(target_price) - float(trade["entry"]))
         events.append(
-            f"🎯 <b>تم تحقيق TP{idx}</b>\n"
+            f"🎯 <b>تم تحقيق الهدف TP{idx}</b>\n"
             f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
             f"فرق السعر من الدخول: {num(distance)}"
         )
@@ -406,7 +429,7 @@ def main():
                     "targets": [float(data[k]) for k in LEVELS],
                     "signal_updated_utc": updated.isoformat(),
                     "candle_time": data["candle_time"],
-                    "created_at": now.isoformat(), "status": "OPEN",
+                    "created_at": now.isoformat(), "status": "PENDING",
                     "highest_target": 0, "target_hit_times": {},
                     "last_checked_bar": latest["ts"] if latest and not quote_stale else int(now.timestamp())
                 }
@@ -426,7 +449,7 @@ def main():
 
         still_open = []
         for trade in active:
-            if trade.get("status") == "OPEN":
+            if trade.get("status") in ("PENDING", "OPEN", "ACTIVE"):
                 still_open.append(trade)
             else:
                 closed.append(trade)
