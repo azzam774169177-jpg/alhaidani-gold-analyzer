@@ -1,52 +1,15 @@
-name: Publish Manual Gold Trade
+name: Publish Manual Gold Trade (DISABLED DURING MAINTENANCE)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - manual_trade.json
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   publish:
+    if: false
     runs-on: ubuntu-latest
     steps:
-      - name: Calculate dynamic gold levels and send to Telegram
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: "-1003819420479"
-        run: |
-          python - <<'PY'
-          import json, math, os, urllib.parse, urllib.request
-          from datetime import datetime, timezone
-
-          ENTRY = 4147
-          stop = 4157
-          targets = [4136, 4126, 4116]
-
-          msg = (
-              "👑 <b>أسطورة المجال | صفقة ذهب</b>\n\n"
-              "🔴 <b>بيع XAUUSD</b>\n"
-              f"💰 الدخول: <code>{ENTRY}</code>\n"
-              f"🛑 الاستوب: <code>{stop}</code>\n"
-              f"🎯 TP1: <code>{targets[0]}</code>\n"
-              f"🎯 TP2: <code>{targets[1]}</code>\n"
-              f"🎯 TP3: <code>{targets[2]}</code>"
-          )
-          token = os.environ["TELEGRAM_BOT_TOKEN"]
-          chat = os.environ["TELEGRAM_CHAT_ID"]
-          body = urllib.parse.urlencode({"chat_id": chat, "text": msg, "parse_mode": "HTML", "disable_web_page_preview": "true"}).encode()
-          request = urllib.request.Request(
-              f"https://api.telegram.org/bot{token}/sendMessage",
-              data=body,
-              headers={"Content-Type": "application/x-www-form-urlencoded"}
-          )
-          with urllib.request.urlopen(request, timeout=25) as response:
-              result = json.loads(response.read().decode())
-          if not result.get("ok"):
-              raise RuntimeError(result.get("description", "Telegram send failed"))
-          print("Telegram message sent; message_id=" + str(result["result"]["message_id"]))
-          print(json.dumps({"entry": ENTRY, "stop_loss": stop, "take_profit_1": targets[0], "take_profit_2": targets[1], "take_profit_3": targets[2]}))
-          PY
+      - name: Disabled
+        run: echo "Manual trade publishing is disabled during bot maintenance."
