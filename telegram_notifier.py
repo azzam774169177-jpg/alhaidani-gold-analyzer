@@ -212,7 +212,7 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
             f"TP3: <code>{num(data['take_profit_3'])}</code>\n"
         )
     msg += (
-        f"\n📈 آخر سعر مراقَب GC=F: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
+        f"\n📈 آخر سعر مراقَب XAUUSD=X: <code>{num(quote['close']) if quote else 'غير متاح'}</code>\n"
         f"🕒 تحديث الملف: {fmt_time(updated)} (العمر {age_text(updated_age)})\n"
         f"🕯 وقت الشمعة: {fmt_time(candle)} (العمر {age_text(candle_age)})\n"
         f"📡 المصدر: <code>{html.escape(str(data['data_source']))}</code>\n"
@@ -381,7 +381,7 @@ def summarize(trades, start, end, title):
         f"⏳ صفقات مفتوحة حالياً: {open_count}\n"
         f"نسبة النجاح بين صفقات TP3 والخسارة المباشرة: {rate:.1f}%\n"
         f"فرق السعر للصفقات المحسومة فقط (دولار/أونصة): +{gross_up:.2f} / {gross_down:.2f} / الصافي {net_delta:+.2f}\n"
-        "ملاحظة: هذا فرق سعري بالدولار لكل أونصة على GC=F وليس نقاط وسيطك؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
+        "ملاحظة: هذا فرق سعري بالدولار لكل أونصة على XAUUSD=X وليس نقاط وسيطك؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
     )
 
 def main():
