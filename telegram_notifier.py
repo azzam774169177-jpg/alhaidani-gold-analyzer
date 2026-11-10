@@ -385,6 +385,16 @@ def summarize(trades, start, end, title):
     )
 
 def main():
+    # Hard maintenance lock: prevent any manual or automatic run from publishing trades.
+    try:
+        with open("maintenance_notice.json", "r", encoding="utf-8") as maintenance_file:
+            maintenance = json.load(maintenance_file)
+    except FileNotFoundError:
+        maintenance = {"signals_paused": False}
+    if maintenance.get("signals_paused") is True:
+        print("MAINTENANCE: signal publishing is locked; no trade will be sent.")
+        return
+
     state = load_state()
     now = utc_now()
     try:
