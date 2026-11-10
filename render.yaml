@@ -1,14 +1,17 @@
 services:
-  - type: worker
+  - type: web
     name: alhaidani-gold-photo-bot
     runtime: docker
-    plan: starter
+    plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
     dockerContext: .
     autoDeploy: true
+    healthCheckPath: /healthz
     envVars:
       - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
         sync: false
       - key: TELEGRAM_ALLOWED_CHAT_ID
         value: "-1003960644699"
