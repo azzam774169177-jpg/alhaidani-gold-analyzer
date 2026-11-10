@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "190c085a2825dc3014931ed31d72518e1f4c55325f01db2b828d402e5b58b4d8",
-  "last_bar_ts": 1794273270,
+  "last_signal_key": "cf444bc7e5beba5b60ecb655e03ccec1ee82eff88b34110aa8a52e2ae1222008",
+  "last_bar_ts": 1794276692,
   "active_trades": [
     {
       "signal_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6",
@@ -20,26 +20,8 @@
       "target_hit_times": {
         "1": "2026-11-09T20:02:00+00:00"
       },
-      "last_checked_bar": 1794273270,
+      "last_checked_bar": 1794276692,
       "activated_at": "2026-11-09T19:47:00+00:00"
-    },
-    {
-      "signal_key": "190c085a2825dc3014931ed31d72518e1f4c55325f01db2b828d402e5b58b4d8",
-      "side": "BUY",
-      "entry": 4141.5,
-      "stop_loss": 4130.08,
-      "targets": [
-        4152.92,
-        4164.34,
-        4175.76
-      ],
-      "signal_updated_utc": "2026-11-10T01:24:36.179406+00:00",
-      "candle_time": "2026-11-10T01:00:00+00:00",
-      "created_at": "2026-11-10T01:24:36.310964+00:00",
-      "status": "PENDING",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1794273270
     }
   ],
   "closed_trades": [
@@ -130,6 +112,28 @@
       "closed_at": "2026-11-10T00:32:00+00:00",
       "close_price": 4134.79,
       "result_delta": -11.109999999999673
+    },
+    {
+      "signal_key": "190c085a2825dc3014931ed31d72518e1f4c55325f01db2b828d402e5b58b4d8",
+      "side": "BUY",
+      "entry": 4141.5,
+      "stop_loss": 4130.08,
+      "targets": [
+        4152.92,
+        4164.34,
+        4175.76
+      ],
+      "signal_updated_utc": "2026-11-10T01:24:36.179406+00:00",
+      "candle_time": "2026-11-10T01:00:00+00:00",
+      "created_at": "2026-11-10T01:24:36.310964+00:00",
+      "status": "LOSS",
+      "highest_target": 0,
+      "target_hit_times": {},
+      "last_checked_bar": 1794276360,
+      "activated_at": "2026-11-10T01:15:00+00:00",
+      "closed_at": "2026-11-10T02:06:00+00:00",
+      "close_price": 4130.08,
+      "result_delta": -11.420000000000073
     }
   ],
   "last_daily_yemen_day": "2026-11-10",
