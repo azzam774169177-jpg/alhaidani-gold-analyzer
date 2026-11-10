@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "f97961e2fcefac3b98a8ab4fb017b31b05057b344111fff6151ce217a84b7f26",
-  "last_bar_ts": 1794267097,
+  "last_signal_key": "a519e95bafcb77e565968748ea75992a43c047695f09e275939b22746d08174d",
+  "last_bar_ts": 1794269176,
   "active_trades": [
     {
       "signal_key": "5e5c4cd3970f6a4e81688861b981170ea817096be9b456868fcec9e1764c50a6",
@@ -20,7 +20,7 @@
       "target_hit_times": {
         "1": "2026-11-09T20:02:00+00:00"
       },
-      "last_checked_bar": 1794267097,
+      "last_checked_bar": 1794269176,
       "activated_at": "2026-11-09T19:47:00+00:00"
     },
     {
@@ -39,7 +39,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794267097,
+      "last_checked_bar": 1794269176,
       "activated_at": "2026-11-09T21:24:00+00:00"
     },
     {
@@ -55,10 +55,29 @@
       "signal_updated_utc": "2026-11-09T23:41:39.742512+00:00",
       "candle_time": "2026-11-09T23:30:00+00:00",
       "created_at": "2026-11-09T23:41:39.934940+00:00",
+      "status": "ACTIVE",
+      "highest_target": 0,
+      "target_hit_times": {},
+      "last_checked_bar": 1794269176,
+      "activated_at": "2026-11-09T23:32:00+00:00"
+    },
+    {
+      "signal_key": "a519e95bafcb77e565968748ea75992a43c047695f09e275939b22746d08174d",
+      "side": "BUY",
+      "entry": 4145.9,
+      "stop_loss": 4134.79,
+      "targets": [
+        4157.01,
+        4168.12,
+        4179.23
+      ],
+      "signal_updated_utc": "2026-11-10T00:16:23.430861+00:00",
+      "candle_time": "2026-11-10T00:00:00+00:00",
+      "created_at": "2026-11-10T00:16:23.572586+00:00",
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794267097
+      "last_checked_bar": 1794269176
     }
   ],
   "closed_trades": [
@@ -90,5 +109,5 @@
   "last_monthly_key": null,
   "last_error": null,
   "last_quote_warning": null,
-  "last_announced_key": "f97961e2fcefac3b98a8ab4fb017b31b05057b344111fff6151ce217a84b7f26"
+  "last_announced_key": "a519e95bafcb77e565968748ea75992a43c047695f09e275939b22746d08174d"
 }
