@@ -1,17 +1,45 @@
 # alhaidani-gold-analyzer
 
-Gold market analysis and Telegram signal pipeline for XAUUSD.
+## Telegram chart-photo analyzer (rule-based, no AI)
 
-## Current status
+The photo worker in `telegram_photo_bot.py` receives chart screenshots posted in a Telegram group and calls `photo_chart_analyzer.py`. It uses OpenCV colour masks and a simple pixel-trend estimate. It does **not** use a language model, paid AI API, OCR, or broker credentials.
 
-- Analysis reference: Yahoo Finance `XAUUSD=X` spot-gold indicative feed.
-- This is **not** a live Weltrade quote and is not an execution price.
-- GitHub Actions is scheduled every 5 minutes; the workflow can also be run manually.
-- `maintenance_notice.json` is a hard safety lock. While `signals_paused` is `true`, the notifier exits without publishing any trade.
-- Trade execution is not implemented. The system only analyzes and sends Telegram alerts when explicitly enabled.
+### What it can and cannot do
 
-## Weltrade MT5 integration
+- Recognizes common green and red candle colours in a screenshot.
+- Reports a rough visual bias (up / down / wait) when enough coloured pixels are visible.
+- Does not extract reliable price-axis values, symbol, timeframe, OHLC data, indicators, entry, stop-loss, or take-profit from arbitrary screenshots.
+- Unknown themes, altered candle colours, overlays, low resolution, and cropped charts should return WAIT.
+- The result is an experimental image inspection, not a trading signal or execution instruction.
 
-A genuine broker quote requires MetaTrader 5 running and logged into the user's Weltrade account on a supported Windows machine. Android MT5 does not expose the desktop Python integration used for this bridge. Do not enter or commit trading passwords, Telegram tokens, or GitHub tokens into repository files.
+### Run the Telegram photo worker
 
-Until a Windows MT5 bridge is installed, treat all Yahoo Finance prices as indicative only and do not execute from them.
+Run this as a **continuously running worker** on a host that supports Python 3.11:
+
+```bash
+pip install -r requirements.txt
+export TELEGRAM_BOT_TOKEN="YOUR_TOKEN"
+export TELEGRAM_ALLOWED_CHAT_ID="-1003819420479"
+python telegram_photo_bot.py
+```
+
+Set secrets as environment variables in the hosting provider. Never commit a bot token to GitHub. Leave `TELEGRAM_ALLOWED_CHAT_ID` unset only if you intentionally want to accept photos from any group the bot belongs to.
+
+### Telegram setup
+
+1. Add the bot to the target group and make it an administrator (or give it permission to read and reply to messages).
+2. In BotFather, use `/setprivacy`, select the bot, then choose **Disable** so it can receive ordinary group photo messages. Re-add the bot to the group if Telegram requires it after changing privacy.
+3. Ensure no other process is polling `getUpdates` with the same bot token. Telegram allows only one active long-polling consumer per bot token.
+4. Post a clear MT5 screenshot with the candles visible.
+
+### Hosting limitation
+
+GitHub Actions scheduled every five minutes is not a continuously running Telegram listener. The photo worker must run on an always-on process/worker host. A free host may sleep or impose usage limits; availability is not guaranteed.
+
+## Existing market-data pipeline
+
+- The separate `analyzer.py` uses Yahoo Finance `XAUUSD=X` indicative spot-gold data, not Weltrade executable prices.
+- `.github/workflows/telegram-gold.yml` runs on a five-minute schedule; it is not a real-time listener.
+- `maintenance_notice.json` remains a hard safety lock. Do not disable it until the separate market-data pipeline is verified.
+- Real Weltrade MT5 quotes require a supported Windows MT5 terminal bridge; Android MT5 does not expose the desktop Python API.
+- Never place Telegram, GitHub, or trading passwords in repository files.
