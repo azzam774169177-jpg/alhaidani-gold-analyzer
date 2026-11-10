@@ -7,6 +7,7 @@ on:
   push:
     paths:
       - "maintenance_notice.json"
+      - "manual_quote.json"
 
 permissions:
   contents: write
@@ -56,8 +57,75 @@ jobs:
             git push
           fi
 
+  manual-price-notice:
+    if: >-
+      github.event_name == 'push' &&
+      (
+        contains(github.event.head_commit.added, 'manual_quote.json') ||
+        contains(github.event.head_commit.modified, 'manual_quote.json') ||
+        contains(github.event.head_commit.removed, 'manual_quote.json')
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate manual quote and send price only
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: "-1003819420479"
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python - <<'PY'
+          import json, math, os
+          from datetime import datetime, timezone
+
+          with open("manual_quote.json", "r", encoding="utf-8") as f:
+              quote = json.load(f)
+          if quote.get("symbol") != "XAUUSD":
+              raise SystemExit("رفض: الرمز يجب أن يكون XAUUSD")
+          price = quote.get("price")
+          if not isinstance(price, (int, float)) or isinstance(price, bool) or not math.isfinite(price) or price <= 0:
+              print("لا يوجد سعر صالح؛ لم يتم إرسال أي رسالة.")
+              raise SystemExit(0)
+
+          with open(os.environ["GITHUB_EVENT_PATH"], "r", encoding="utf-8") as f:
+              event = json.load(f)
+          stamp = event.get("head_commit", {}).get("timestamp")
+          if not stamp:
+              raise SystemExit("رفض: وقت تحديث الملف غير متوفر")
+          committed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+          age = (datetime.now(timezone.utc) - committed.astimezone(timezone.utc)).total_seconds()
+          if age > 900 or age < -120:
+              raise SystemExit("رفض: تحديث السعر أقدم من 15 دقيقة أو وقته غير صحيح")
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          if not token or not chat_id:
+              raise SystemExit("إعدادات Telegram غير مكتملة في GitHub Secrets")
+          import urllib.parse, urllib.request
+          message = f"XAUUSD | {price:.2f} | إدخال يدوي من MT5 Weltrade"
+          body = urllib.parse.urlencode({"chat_id": chat_id, "text": message}).encode()
+          request = urllib.request.Request(
+              "https://api.telegram.org/bot" + token + "/sendMessage",
+              data=body,
+              headers={"Content-Type": "application/x-www-form-urlencoded"}
+          )
+          with urllib.request.urlopen(request, timeout=25) as response:
+              result = json.loads(response.read().decode("utf-8"))
+          if not result.get("ok"):
+              raise SystemExit("Telegram رفض إرسال تحديث السعر")
+          print("تم إرسال تحديث السعر اليدوي بنجاح.")
+          PY
+
   maintenance-notice:
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'push' &&
+      (
+        contains(github.event.head_commit.added, 'maintenance_notice.json') ||
+        contains(github.event.head_commit.modified, 'maintenance_notice.json') ||
+        contains(github.event.head_commit.removed, 'maintenance_notice.json')
+      )
     runs-on: ubuntu-latest
     steps:
       - name: Send maintenance notice through Telegram bot
@@ -68,10 +136,10 @@ jobs:
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
           message = (
-              "👑 أسطورة المجال | إشعار هام\n\n"
-              "🛠️ البوت تحت الصيانة والتطوير حالياً.\n"
-              "⛔ تم إيقاف صفقات البوت مؤقتاً حتى اكتمال التحديثات.\n"
-              "يرجى عدم الاعتماد على أي إشارات آلية خلال فترة الصيانة.\n"
+              "👑 أسطورة المجال | إشعار هام\\n\\n"
+              "🛠️ البوت تحت الصيانة والتطوير حالياً.\\n"
+              "⛔ تم إيقاف صفقات البوت مؤقتاً حتى اكتمال التحديثات.\\n"
+              "يرجى عدم الاعتماد على أي إشارات آلية خلال فترة الصيانة.\\n"
               "سنعلن لكم عند عودة البوت للعمل بإذن الله."
           )
           body = urllib.parse.urlencode({
