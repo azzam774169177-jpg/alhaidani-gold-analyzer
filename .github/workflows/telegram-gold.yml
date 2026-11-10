@@ -1,8 +1,9 @@
 name: Gold Analysis and Telegram Signals
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    paths:
+      - "maintenance_notice.json"
   workflow_dispatch:
 
 permissions:
@@ -14,6 +15,7 @@ concurrency:
 
 jobs:
   gold-pipeline:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -51,3 +53,38 @@ jobs:
             git pull --rebase origin main
             git push
           fi
+
+  maintenance-notice:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send maintenance notice through Telegram bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: "-1003819420479"
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          message = (
+              "👑 أسطورة المجال | إشعار هام\n\n"
+              "🛠️ البوت تحت الصيانة والتطوير حالياً.\n"
+              "⛔ تم إيقاف صفقات البوت مؤقتاً حتى اكتمال التحديثات.\n"
+              "يرجى عدم الاعتماد على أي إشارات آلية خلال فترة الصيانة.\n"
+              "سنعلن لكم عند عودة البوت للعمل بإذن الله."
+          )
+          body = urllib.parse.urlencode({
+              "chat_id": os.environ["TELEGRAM_CHAT_ID"],
+              "text": message,
+              "disable_web_page_preview": "true"
+          }).encode()
+          req = urllib.request.Request(
+              "https://api.telegram.org/bot" + os.environ["TELEGRAM_BOT_TOKEN"] + "/sendMessage",
+              data=body,
+              headers={"Content-Type": "application/x-www-form-urlencoded"}
+          )
+          with urllib.request.urlopen(req, timeout=25) as response:
+              result = json.loads(response.read().decode())
+          if not result.get("ok"):
+              raise RuntimeError(result.get("description", "Telegram send failed"))
+          print("Maintenance notice sent; message_id=" + str(result["result"]["message_id"]))
+          PY
