@@ -1,2 +1,4 @@
 pandas
 yfinance
+numpy
+opencv-python-headless
