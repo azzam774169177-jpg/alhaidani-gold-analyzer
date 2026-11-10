@@ -6,7 +6,7 @@ from pathlib import Path
 from photo_chart_analyzer import analyze_chart_image
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "").strip()
+ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "-1003960644699").strip()
 API = f"https://api.telegram.org/bot{TOKEN}/"
 
 def api(method, params=None, timeout=45):
