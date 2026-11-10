@@ -131,7 +131,7 @@ jobs:
       - name: Send maintenance notice through Telegram bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: "-1003819420479"
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID || '-1003960644699' }}
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
