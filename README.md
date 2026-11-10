@@ -19,11 +19,11 @@ Run this as a **continuously running worker** on a host that supports Python 3.1
 ```bash
 pip install -r requirements.txt
 export TELEGRAM_BOT_TOKEN="YOUR_TOKEN"
-export TELEGRAM_ALLOWED_CHAT_ID="-1003819420479"
+export TELEGRAM_ALLOWED_CHAT_ID="-1003960644699"
 python telegram_photo_bot.py
 ```
 
-Set secrets as environment variables in the hosting provider. Never commit a bot token to GitHub. Leave `TELEGRAM_ALLOWED_CHAT_ID` unset only if you intentionally want to accept photos from any group the bot belongs to.
+Set secrets as environment variables in the hosting provider. Never commit a bot token to GitHub. The worker defaults to the configured `بوت تحليل الذهب XAUUSD` group (`-1003960644699`) if this variable is omitted. Set it explicitly in the host environment when deploying.
 
 ### Telegram setup
 
