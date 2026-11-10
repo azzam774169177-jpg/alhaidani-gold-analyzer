@@ -5,8 +5,8 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-SYMBOL = "GC=F"  # COMEX gold futures proxy; not the broker's XAUUSD quote
-SOURCE = "GC=F - COMEX Gold Futures via Yahoo Finance (indicative proxy, not Weltrade)"
+SYMBOL = "XAUUSD=X"  # Yahoo Finance spot-gold indicative quote; not the broker's executable quote
+SOURCE = "XAUUSD=X - Yahoo Finance spot gold indicative quote (not Weltrade broker feed)"
 
 
 def wait_result(reason):
@@ -26,14 +26,14 @@ def analyze():
         auto_adjust=False, threads=False
     )
     if data.empty:
-        return wait_result("مصدر GC=F لم يُرجع بيانات؛ لن نرسل صفقة قديمة")
+        return wait_result("مصدر XAUUSD=X لم يُرجع بيانات؛ لن نرسل صفقة قديمة")
 
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
     required = {"High", "Low", "Close"}
     if not required.issubset(data.columns):
-        return wait_result("بيانات OHLC غير مكتملة من مصدر GC=F")
+        return wait_result("بيانات OHLC غير مكتملة من مصدر XAUUSD=X")
 
     candles = data[["High", "Low", "Close"]].dropna()
     if len(candles) < 60:
@@ -93,7 +93,7 @@ def analyze():
         "ema20": round(e20, 2), "ema50": round(e50, 2),
         "candle_time": candle_dt.isoformat(),
         "updated_utc": datetime.now(timezone.utc).isoformat(),
-        "notice": "تحليل آلي تجريبي على عقد الذهب الآجل GC=F؛ قد يختلف عن سعر XAUUSD لدى Weltrade. تحقق من السعر قبل التنفيذ."
+        "notice": "تحليل آلي تجريبي على سعر الذهب الفوري الاسترشادي XAUUSD=X؛ ليس سعراً تنفيذياً من Weltrade وقد يختلف عنه. تحقق من سعر وسيطك قبل التنفيذ."
     }
 
 
