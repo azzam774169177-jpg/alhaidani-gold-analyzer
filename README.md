@@ -1,45 +1,25 @@
 # alhaidani-gold-analyzer
 
-## Telegram chart-photo analyzer (rule-based, no AI)
+## AI Telegram chart-photo replies
 
-The photo worker in `telegram_photo_bot.py` receives chart screenshots posted in a Telegram group and calls `photo_chart_analyzer.py`. It uses OpenCV colour masks and a simple pixel-trend estimate. It does **not** use a language model, paid AI API, OCR, or broker credentials.
+The Render web service receives chart photos posted in the configured Telegram group, sends the image to the OpenAI Responses API, and replies to the same Telegram message in Arabic. The model may return BUY/SELL only when the screenshot gives enough readable evidence; otherwise it returns WAIT. Levels are estimates read from the screenshot, not live broker quotes or guaranteed trading advice.
 
-### What it can and cannot do
+### Required Render environment variables
 
-- Recognizes common green and red candle colours in a screenshot.
-- Reports a rough visual bias (up / down / wait) when enough coloured pixels are visible.
-- Does not extract reliable price-axis values, symbol, timeframe, OHLC data, indicators, entry, stop-loss, or take-profit from arbitrary screenshots.
-- Unknown themes, altered candle colours, overlays, low resolution, and cropped charts should return WAIT.
-- The result is an experimental image inspection, not a trading signal or execution instruction.
+- `TELEGRAM_BOT_TOKEN`: create/copy from BotFather; keep it only in Render Environment.
+- `TELEGRAM_WEBHOOK_SECRET`: a random secret string used to authenticate Telegram webhook requests.
+- `TELEGRAM_ALLOWED_CHAT_ID`: target group ID; set the actual group ID if it differs from the configured value.
+- `OPENAI_API_KEY`: OpenAI API key, stored only in Render Environment (never commit it to GitHub).
+- `OPENAI_MODEL`: optional; defaults to `gpt-6-astra`.
 
-### Run the Telegram photo worker
+After saving environment variables, Render redeploys the service. The app configures the Telegram webhook on startup. Add the bot to the group, grant permission to read/reply, and disable BotFather privacy mode if it must receive ordinary group photos. Ensure no other webhook or polling service is using the same bot token.
 
-Run this as a **continuously running worker** on a host that supports Python 3.11:
+### Important limitations
 
-```bash
-pip install -r requirements.txt
-export TELEGRAM_BOT_TOKEN="YOUR_TOKEN"
-export TELEGRAM_ALLOWED_CHAT_ID="-1003960644699"
-python telegram_photo_bot.py
-```
-
-Set secrets as environment variables in the hosting provider. Never commit a bot token to GitHub. The worker defaults to the configured `بوت تحليل الذهب XAUUSD` group (`-1003960644699`) if this variable is omitted. Set it explicitly in the host environment when deploying.
-
-### Telegram setup
-
-1. Add the bot to the target group and make it an administrator (or give it permission to read and reply to messages).
-2. In BotFather, use `/setprivacy`, select the bot, then choose **Disable** so it can receive ordinary group photo messages. Re-add the bot to the group if Telegram requires it after changing privacy.
-3. Ensure no other process is polling `getUpdates` with the same bot token. Telegram allows only one active long-polling consumer per bot token.
-4. Post a clear MT5 screenshot with the candles visible.
-
-### Hosting limitation
-
-GitHub Actions scheduled every five minutes is not a continuously running Telegram listener. The photo worker must run on an always-on process/worker host. A free host may sleep or impose usage limits; availability is not guaranteed.
-
-## Existing market-data pipeline
-
-- The separate `analyzer.py` uses Yahoo Finance `XAUUSD=X` indicative spot-gold data, not Weltrade executable prices.
-- `.github/workflows/telegram-gold.yml` runs on a five-minute schedule; it is not a real-time listener.
-- `maintenance_notice.json` remains a hard safety lock. Do not disable it until the separate market-data pipeline is verified.
-- Real Weltrade MT5 quotes require a supported Windows MT5 terminal bridge; Android MT5 does not expose the desktop Python API.
-- Never place Telegram, GitHub, or trading passwords in repository files.
+- The photo reply feature is separate from automated market-signal publishing.
+- The model only sees the submitted screenshot and optional caption; it has no live MT5/Weltrade quote unless a separate trusted feed is integrated.
+- If price labels or the setup are unclear, it should reply WAIT rather than invent levels.
+- AI image analysis can be wrong. Verify every level and use strict risk management.
+- GitHub Actions scheduled every five minutes is not a real-time Telegram listener; this feature uses the Render webhook service.
+- The separate `analyzer.py` market-data pipeline uses Yahoo Finance indicative data, not Weltrade executable prices. The maintenance lock remains in place.
+- Never put Telegram, OpenAI, GitHub, or trading passwords in repository files.
