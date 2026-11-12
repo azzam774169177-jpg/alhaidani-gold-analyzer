@@ -161,9 +161,12 @@ def telegram_webhook():
     chat = message.get("chat") or {}
     photos = message.get("photo") or []
 
-    if chat.get("type") not in ("group", "supergroup"):
+    chat_type = chat.get("type")
+    if chat_type not in ("private", "group", "supergroup"):
         return jsonify({"ok": True})
-    if ALLOWED_CHAT and str(chat.get("id")) != ALLOWED_CHAT:
+    # Private chats are accepted from any member; group photos are limited
+    # to the configured team group to avoid replying in unrelated groups.
+    if chat_type in ("group", "supergroup") and ALLOWED_CHAT and str(chat.get("id")) != ALLOWED_CHAT:
         return jsonify({"ok": True})
     if not photos:
         return jsonify({"ok": True})
