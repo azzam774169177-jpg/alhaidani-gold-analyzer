@@ -86,6 +86,11 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
         "إلغاء الصفقة إذا: ...\n"
         "عند عدم وجود مستويات قابلة للقراءة استخدم فقط:\n"
         "👑 أسطورة المجال | 🟡 انتظار\nالفريم: ...\nالمستوى المطلوب للتفعيل: ...\n"
+        "اكتب العربية سليمة إملائياً، وراجع النص قبل إرساله؛ استخدم كلمة التفعيل بشكل صحيح. "
+        "كل أسعار الذهب يجب أن تظهر أعداداً صحيحة بلا كسور أو سنتات، مثل 3888 وليس 3888.652. "
+        "رتّب أهداف الشراء تصاعدياً من الأقرب إلى الأبعد، وأهداف البيع تنازلياً من الأقرب إلى الأبعد. "
+        "تأكد أن الهدف الأول هو الأقرب للدخول ثم الثاني ثم الثالث، وأن وقف الخسارة في الجهة المعاكسة. "
+        "لا تغيّر ترتيب مستويات السوق ولا تخترع أرقاماً؛ قرّب الأسعار المقروءة إلى أقرب عدد صحيح."
         "لا تضع أرقاماً تقريبية غير مقروءة من الصورة."
     )
     payload = {
@@ -177,6 +182,12 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
     if not answer:
         block = result.get("promptFeedback", {}).get("blockReason", "unknown")
         raise RuntimeError(f"Gemini returned no text; block reason: {block}")
+    # Display XAUUSD quote levels as whole numbers (no fractional cents).
+    import re
+    def whole_gold_price(match):
+        value = float(match.group(0))
+        return str(int(value + 0.5))
+    answer = re.sub(r"(?<![\\w])\\d{3,5}\\.\\d+(?![\\w])", whole_gold_price, answer)
     return answer
 
 
