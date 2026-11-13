@@ -116,6 +116,7 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
             item.get("name", "").removeprefix("models/"): item
             for item in listing.get("models", [])
             if "generateContent" in item.get("supportedGenerationMethods", [])
+            and item.get("name", "").removeprefix("models/") != GEMINI_MODEL
         }
         # Prefer current, low-cost multimodal Flash models, but only if this key lists them.
         preferences = [
