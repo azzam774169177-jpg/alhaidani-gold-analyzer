@@ -132,9 +132,26 @@ def handle_message(message: dict):
         answer = analyze_image(raw, mime, message.get("caption", ""))
         send(chat_id, message_id, answer)
     except Exception as exc:
-        print(f"Photo processing failed: {type(exc).__name__}: {exc}", flush=True)
+        error = str(exc)
+        print(f"Photo processing failed: {type(exc).__name__}: {error}", flush=True)
+        if "OPENAI_API_KEY is not configured" in error:
+            user_error = "🔴 مفتاح OpenAI غير مضاف في Railway. أضف OPENAI_API_KEY ضمن متغيرات الخدمة."
+        elif "HTTP 401" in error:
+            user_error = "🔴 مفتاح OpenAI غير صحيح أو غير صالح. أضف مفتاح API صحيحاً باسم OPENAI_API_KEY."
+        elif "HTTP 429" in error and ("insufficient_quota" in error or "quota" in error.lower()):
+            user_error = "🟠 حساب OpenAI API لا يملك رصيداً كافياً أو يحتاج تفعيل الفوترة."
+        elif "HTTP 429" in error:
+            user_error = "🟠 تجاوزت طلبات OpenAI الحد المؤقت. انتظر قليلاً ثم أعد إرسال الصورة."
+        elif "HTTP 404" in error or "model_not_found" in error:
+            user_error = "🔴 نموذج OpenAI المحدد غير متاح. اضبط OPENAI_MODEL على gpt-4.1-mini في Railway."
+        elif "HTTP 400" in error:
+            user_error = "🟠 رفضت OpenAI طلب الصورة. جرّب صورة JPG أو PNG واضحة."
+        elif "URLError" in type(exc).__name__ or "timed out" in error.lower():
+            user_error = "🟠 تعذر الاتصال بخدمة التحليل مؤقتاً. حاول مجدداً بعد قليل."
+        else:
+            user_error = "🟡 تعذر تحليل الصورة. راجع سجلات Railway لمعرفة السبب."
         try:
-            send(chat_id, message_id, "🟡 تعذر تحليل الصورة حالياً. تأكد من إعداد مفاتيح الخدمة وأرسل صورة واضحة مجدداً.")
+            send(chat_id, message_id, user_error)
         except Exception as reply_exc:
             print(f"Telegram reply failed: {type(reply_exc).__name__}: {reply_exc}", flush=True)
 
@@ -147,7 +164,7 @@ def main():
     # Polling and webhook cannot run simultaneously for one Telegram bot token.
     telegram("deleteWebhook", {"drop_pending_updates": "false"})
     offset = None
-    print("Telegram XAUUSD photo-analysis worker started.", flush=True)
+    print(f"Telegram XAUUSD photo-analysis worker started. OPENAI_API_KEY configured: {bool(OPENAI_API_KEY)}; model: {OPENAI_MODEL}", flush=True)
     while True:
         try:
             params = {"timeout": 30, "allowed_updates": json.dumps(["message"])}
