@@ -94,12 +94,12 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
     }
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        + GEMINI_MODEL + ":generateContent?key=" + urllib.parse.quote(GEMINI_API_KEY)
+        + GEMINI_MODEL + ":generateContent"
     )
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
         method="POST",
     )
     try:
@@ -147,8 +147,6 @@ def handle_message(message: dict):
             user_error = "🟠 وصلت إلى حد الاستخدام المجاني لـ Gemini أو حد الطلبات. انتظر تجدد الحصة ثم أعد المحاولة."
         elif "HTTP 404" in error:
             user_error = "🔴 نموذج Gemini غير متاح. تحقق من GEMINI_MODEL في Railway."
-        elif "HTTP 400" in error:
-            user_error = "🟠 رفضت OpenAI طلب الصورة. جرّب صورة JPG أو PNG واضحة."
         elif "URLError" in type(exc).__name__ or "timed out" in error.lower():
             user_error = "🟠 تعذر الاتصال بخدمة التحليل مؤقتاً. حاول مجدداً بعد قليل."
         else:
