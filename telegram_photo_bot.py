@@ -68,6 +68,13 @@ def send(chat_id: int, reply_id: int, message: str):
         "disable_web_page_preview": "true",
     })
 
+def send_plain(chat_id: int, message: str):
+    telegram("sendMessage", {
+        "chat_id": str(chat_id),
+        "text": message[:4000],
+        "disable_web_page_preview": "true",
+    })
+
 
 def download_photo(file_id: str) -> tuple[bytes, str]:
     info = telegram("getFile", {"file_id": file_id})
@@ -235,7 +242,7 @@ def analyze_images(images: list[tuple[bytes, str, str]]) -> str:
 
 
 def handle_message(message: dict):
-    global AUTHORIZED_USERS
+    global AUTHORIZED_USERS, PENDING_LAST_AT
     chat = message.get("chat") or {}
     chat_type = chat.get("type")
     if chat_type not in ("private", "group", "supergroup"):
@@ -248,13 +255,12 @@ def handle_message(message: dict):
     sender_id = (message.get("from") or {}).get("id")
     text_message = (message.get("text") or "").strip()
 
-    # Password enrollment is accepted only in a private chat.
     if chat_type == "private" and text_message:
         if text_message == ACCESS_PASSWORD:
             if sender_id is not None:
                 AUTHORIZED_USERS.add(int(sender_id))
                 save_authorized_users(AUTHORIZED_USERS)
-            send(chat_id, message_id, "✅ تم تفعيل عضويتك بنجاح. يمكنك الآن إرسال صور الشارت لطلب تحليل الذهب.")
+            send(chat_id, message_id, "✅ تم تفعيل عضويتك بنجاح. أرسل صورة الشارت هنا لتحصل على تحليل خاص. ستُستخدم المؤشرات المستخلصة من الصورة أيضاً ضمن التحليل التجميعي للجروب، دون نشر صورتك أو اسمك.")
         else:
             send(chat_id, message_id, "🔒 للحصول على كلمة مرور تفعيل البوت، تواصل مع الإدارة عبر تيليجرام: @M77A77A")
         return
@@ -271,16 +277,16 @@ def handle_message(message: dict):
 
     try:
         raw, mime = download_photo(photos[-1]["file_id"])
-        if chat_type in ("group", "supergroup"):
-            global PENDING_CHAT_ID, PENDING_REPLY_ID, PENDING_LAST_AT
-            PENDING_PHOTOS.append((raw, mime, message.get("caption", "")))
-            PENDING_CHAT_ID = int(chat_id)
-            PENDING_REPLY_ID = int(message_id)
+        caption = message.get("caption", "")
+        if len(PENDING_PHOTOS) < 8:
+            PENDING_PHOTOS.append((raw, mime, caption))
             PENDING_LAST_AT = time.time()
-            print(f"Queued chart image; batch size={len(PENDING_PHOTOS)}", flush=True)
+            print(f"Queued member chart for group consensus; batch size={len(PENDING_PHOTOS)}", flush=True)
+        if chat_type == "private":
+            answer = analyze_images([(raw, mime, caption)])
+            send(chat_id, message_id, answer + "\n\n📊 تم إدراج المؤشرات الفنية المستخلصة من صورتك ضمن التحليل التجميعي للجروب دون مشاركة الصورة أو اسمك.")
         else:
-            answer = analyze_images([(raw, mime, message.get("caption", ""))])
-            send(chat_id, message_id, answer)
+            send(chat_id, message_id, "📥 تم استلام الشارت وإضافته للتحليل التجميعي. ستصل خلاصة الفرصة إلى الجروب بعد انتهاء فترة تجميع الصور.")
     except Exception as exc:
         error = str(exc)
         print(f"Photo processing failed: {type(exc).__name__}: {error}", flush=True)
@@ -292,28 +298,25 @@ def handle_message(message: dict):
 
 
 def flush_pending_photos(force: bool = False):
-    global PENDING_PHOTOS, PENDING_CHAT_ID, PENDING_REPLY_ID, PENDING_LAST_AT
+    global PENDING_PHOTOS, PENDING_LAST_AT
     if not PENDING_PHOTOS or (not force and time.time() - PENDING_LAST_AT < BATCH_WINDOW_SECONDS):
         return
     batch = PENDING_PHOTOS
-    target_chat = PENDING_CHAT_ID
-    reply_to = PENDING_REPLY_ID
     PENDING_PHOTOS = []
-    PENDING_CHAT_ID = None
-    PENDING_REPLY_ID = None
     PENDING_LAST_AT = 0.0
     try:
-        print(f"Analyzing consensus from {len(batch)} member chart image(s)", flush=True)
+        print(f"Analyzing group consensus from {len(batch)} member chart image(s)", flush=True)
         answer = analyze_images(batch)
-        if target_chat is not None and reply_to is not None:
-            send(target_chat, reply_to, answer)
+        if ALLOWED_CHAT:
+            send_plain(int(ALLOWED_CHAT), "👑 أسطورة المجال | 📊 التحليل التجميعي لصور الأعضاء\n\n" + answer)
     except Exception as exc:
         print(f"Batch analysis failed: {type(exc).__name__}: {exc}", flush=True)
-        if target_chat is not None and reply_to is not None:
+        if ALLOWED_CHAT:
             try:
-                send(target_chat, reply_to, "🟠 تعذر إكمال التحليل الموحّد للصور حالياً. حاولوا مجدداً بعد قليل.")
+                send_plain(int(ALLOWED_CHAT), "🟠 تعذر إكمال التحليل التجميعي لصور الأعضاء حالياً. حاولوا مجدداً بعد قليل.")
             except Exception as reply_exc:
                 print(f"Telegram batch reply failed: {type(reply_exc).__name__}: {reply_exc}", flush=True)
+
 
 def main():
     if not TOKEN:
