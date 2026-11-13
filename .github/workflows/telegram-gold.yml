@@ -8,6 +8,7 @@ on:
     paths:
       - "maintenance_notice.json"
       - "manual_quote.json"
+      - "analyzer.py"
 
 permissions:
   contents: write
@@ -18,7 +19,10 @@ concurrency:
 
 jobs:
   gold-pipeline:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'push' && contains(github.event.head_commit.modified, 'analyzer.py'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
