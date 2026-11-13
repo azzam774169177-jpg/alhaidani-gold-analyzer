@@ -164,6 +164,10 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
             if part.get("text"):
                 chunks.append(part["text"])
     answer = "\n".join(chunks).strip()
+    # Correct frequent Arabic trading-term spelling mistakes before sending.
+    answer = answer.replace("شاعة", "شمعة").replace("شاعه", "شمعة")
+    answer = answer.replace("اغلاق", "إغلاق").replace("اغلق", "أغلق")
+
     if not answer:
         block = result.get("promptFeedback", {}).get("blockReason", "unknown")
         raise RuntimeError(f"Gemini returned no text; block reason: {block}")
