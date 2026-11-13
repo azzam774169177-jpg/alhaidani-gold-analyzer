@@ -14,6 +14,27 @@ TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "-1003960644699").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
+ACCESS_PASSWORD = os.environ.get("BOT_ACCESS_PASSWORD", "AS7112026").strip()
+AUTH_FILE = os.environ.get("BOT_AUTH_FILE", "authorized_users.json")
+
+
+def load_authorized_users() -> set[int]:
+    try:
+        with open(AUTH_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {int(x) for x in data.get("authorized_user_ids", [])}
+    except (FileNotFoundError, ValueError, TypeError, json.JSONDecodeError):
+        return set()
+
+
+def save_authorized_users(users: set[int]) -> None:
+    temp = AUTH_FILE + ".tmp"
+    with open(temp, "w", encoding="utf-8") as f:
+        json.dump({"authorized_user_ids": sorted(users)}, f)
+    os.replace(temp, AUTH_FILE)
+
+
+AUTHORIZED_USERS = load_authorized_users()
 TG_API = f"https://api.telegram.org/bot{TOKEN}/"
 
 
@@ -197,17 +218,40 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
 
 
 def handle_message(message: dict):
+    global AUTHORIZED_USERS
     chat = message.get("chat") or {}
     chat_type = chat.get("type")
     if chat_type not in ("private", "group", "supergroup"):
         return
     if chat_type in ("group", "supergroup") and ALLOWED_CHAT and str(chat.get("id")) != ALLOWED_CHAT:
         return
+
+    chat_id = chat.get("id")
+    message_id = message.get("message_id")
+    sender_id = (message.get("from") or {}).get("id")
+    text_message = (message.get("text") or "").strip()
+
+    # Password enrollment is accepted only in a private chat.
+    if chat_type == "private" and text_message:
+        if text_message == ACCESS_PASSWORD:
+            if sender_id is not None:
+                AUTHORIZED_USERS.add(int(sender_id))
+                save_authorized_users(AUTHORIZED_USERS)
+            send(chat_id, message_id, "✅ تم تفعيل عضويتك بنجاح. يمكنك الآن إرسال صور الشارت لطلب تحليل الذهب.")
+        else:
+            send(chat_id, message_id, "🔒 كلمة المرور غير صحيحة. أدخل كلمة المرور المعتمدة لتفعيل التحليل.")
+        return
+
     photos = message.get("photo") or []
     if not photos:
         return
-    chat_id = chat.get("id")
-    message_id = message.get("message_id")
+    if sender_id is None or int(sender_id) not in AUTHORIZED_USERS:
+        if chat_type == "private":
+            send(chat_id, message_id, "🔒 البوت محمي بكلمة مرور. أرسل كلمة المرور في هذه المحادثة أولاً.")
+        else:
+            send(chat_id, message_id, "🔒 التحليل محمي. أرسل كلمة المرور للبوت في الخاص ثم أعد إرسال الصورة.")
+        return
+
     try:
         raw, mime = download_photo(photos[-1]["file_id"])
         answer = analyze_image(raw, mime, message.get("caption", ""))
