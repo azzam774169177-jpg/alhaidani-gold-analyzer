@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Always-on Telegram photo-analysis worker using long polling and OpenAI vision."""
+"""Always-on Telegram photo-analysis worker using long polling and Gemini vision."""
 from __future__ import annotations
 
 import base64
@@ -12,8 +12,8 @@ import urllib.error
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "-1003960644699").strip()
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
-OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini").strip()
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
 TG_API = f"https://api.telegram.org/bot{TOKEN}/"
 
 
@@ -60,14 +60,13 @@ def download_photo(file_id: str) -> tuple[bytes, str]:
 
 
 def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
-    if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is not configured")
-    image_url = f"data:{mime};base64," + base64.b64encode(raw).decode("ascii")
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured")
     prompt = (
         "أنت مساعد لتحليل صور شارت الذهب XAUUSD. حلّل الصورة المرفقة فقط، ولا تدّعِ "
         "أن لديك سعراً لحظياً أو بيانات MT5 مباشرة. تعليق العضو: "
         + (caption[:800] if caption else "لا يوجد")
-        + "\nتحقق أولاً أن الصورة شارت تداول وأن الرمز XAUUSD ظاهر أو أن العضو ذكره. "
+        + "\nتحقق أن الصورة شارت تداول وأن الرمز XAUUSD ظاهر أو أن العضو ذكره. "
         "اقرأ الأسعار فقط إذا كانت واضحة تماماً. لا تخترع مستويات أو مؤشرات أو أسعاراً. "
         "إذا كانت الصورة غير واضحة أو الرمز غير مؤكد أو لا توجد فرصة مكتملة، أجب انتظاراً "
         "واشرح السبب بجملة قصيرة. لا تعطِ BUY أو SELL إلا إذا كان اتجاه الدخول ووقف الخسارة "
@@ -77,24 +76,30 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
         "🟢 BUY أو 🔴 SELL — XAUUSD\n"
         "منطقة الدخول: ...\nوقف الخسارة: ...\nالهدف الأول: ...\nالهدف الثاني: ...\n"
         "الهدف الثالث: ...\nسبب الإشارة: ...\n"
-        "اذكر أن المستويات تقديرية ومقروءة من الصورة وليست أسعاراً لحظية.\n"
+        "اذكر أن المستويات تقديرية ومقروءة من الصورة وليست أسعاراً لحظية. "
         "إذا لم تتوفر فرصة، ابدأ بـ 👑 أسطورة المجال | 🟡 انتظار."
     )
     payload = {
-        "model": OPENAI_MODEL,
-        "input": [{
+        "contents": [{
             "role": "user",
-            "content": [
-                {"type": "input_text", "text": prompt},
-                {"type": "input_image", "image_url": image_url, "detail": "high"},
+            "parts": [
+                {"text": prompt},
+                {"inline_data": {
+                    "mime_type": mime,
+                    "data": base64.b64encode(raw).decode("ascii")
+                }},
             ],
         }],
-        "max_output_tokens": 550,
+        "generationConfig": {"maxOutputTokens": 550, "temperature": 0.2},
     }
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        + GEMINI_MODEL + ":generateContent?key=" + urllib.parse.quote(GEMINI_API_KEY)
+    )
     req = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
+        url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
     try:
@@ -102,16 +107,16 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
             result = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:1200]
-        raise RuntimeError(f"OpenAI API HTTP {exc.code}: {detail}") from exc
+        raise RuntimeError(f"Gemini API HTTP {exc.code}: {detail}") from exc
     chunks = []
-    for item in result.get("output", []):
-        if item.get("type") == "message":
-            for part in item.get("content", []):
-                if part.get("type") == "output_text" and part.get("text"):
-                    chunks.append(part["text"])
+    for candidate in result.get("candidates", []):
+        for part in candidate.get("content", {}).get("parts", []):
+            if part.get("text"):
+                chunks.append(part["text"])
     answer = "\n".join(chunks).strip()
     if not answer:
-        raise RuntimeError("OpenAI returned no text")
+        block = result.get("promptFeedback", {}).get("blockReason", "unknown")
+        raise RuntimeError(f"Gemini returned no text; block reason: {block}")
     return answer
 
 
@@ -134,16 +139,14 @@ def handle_message(message: dict):
     except Exception as exc:
         error = str(exc)
         print(f"Photo processing failed: {type(exc).__name__}: {error}", flush=True)
-        if "OPENAI_API_KEY is not configured" in error:
-            user_error = "🔴 مفتاح OpenAI غير مضاف في Railway. أضف OPENAI_API_KEY ضمن متغيرات الخدمة."
-        elif "HTTP 401" in error:
-            user_error = "🔴 مفتاح OpenAI غير صحيح أو غير صالح. أضف مفتاح API صحيحاً باسم OPENAI_API_KEY."
-        elif "HTTP 429" in error and ("insufficient_quota" in error or "quota" in error.lower()):
-            user_error = "🟠 حساب OpenAI API لا يملك رصيداً كافياً أو يحتاج تفعيل الفوترة."
+        if "GEMINI_API_KEY is not configured" in error:
+            user_error = "🔴 مفتاح Gemini غير مضاف في Railway. أضف GEMINI_API_KEY ضمن متغيرات الخدمة."
+        elif "HTTP 400" in error or "HTTP 403" in error:
+            user_error = "🔴 مفتاح Gemini أو صلاحية النموذج غير صحيحة. تحقق من المفتاح في Google AI Studio."
         elif "HTTP 429" in error:
-            user_error = "🟠 تجاوزت طلبات OpenAI الحد المؤقت. انتظر قليلاً ثم أعد إرسال الصورة."
-        elif "HTTP 404" in error or "model_not_found" in error:
-            user_error = "🔴 نموذج OpenAI المحدد غير متاح. اضبط OPENAI_MODEL على gpt-4.1-mini في Railway."
+            user_error = "🟠 وصلت إلى حد الاستخدام المجاني لـ Gemini أو حد الطلبات. انتظر تجدد الحصة ثم أعد المحاولة."
+        elif "HTTP 404" in error:
+            user_error = "🔴 نموذج Gemini غير متاح. تحقق من GEMINI_MODEL في Railway."
         elif "HTTP 400" in error:
             user_error = "🟠 رفضت OpenAI طلب الصورة. جرّب صورة JPG أو PNG واضحة."
         elif "URLError" in type(exc).__name__ or "timed out" in error.lower():
@@ -159,12 +162,12 @@ def handle_message(message: dict):
 def main():
     if not TOKEN:
         raise SystemExit("Missing TELEGRAM_BOT_TOKEN environment variable")
-    if not OPENAI_API_KEY:
-        raise SystemExit("Missing OPENAI_API_KEY environment variable")
+    if not GEMINI_API_KEY:
+        raise SystemExit("Missing GEMINI_API_KEY environment variable")
     # Polling and webhook cannot run simultaneously for one Telegram bot token.
     telegram("deleteWebhook", {"drop_pending_updates": "false"})
     offset = None
-    print(f"Telegram XAUUSD photo-analysis worker started. OPENAI_API_KEY configured: {bool(OPENAI_API_KEY)}; model: {OPENAI_MODEL}", flush=True)
+    print(f"Telegram XAUUSD photo-analysis worker started. GEMINI_API_KEY configured: {bool(GEMINI_API_KEY)}; model: {GEMINI_MODEL}", flush=True)
     while True:
         try:
             params = {"timeout": 30, "allowed_updates": json.dumps(["message"])}
