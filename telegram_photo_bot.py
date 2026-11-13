@@ -187,7 +187,7 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
     def whole_gold_price(match):
         value = float(match.group(0))
         return str(int(value + 0.5))
-    answer = re.sub(r"(?<![\\w])\\d{3,5}\\.\\d+(?![\\w])", whole_gold_price, answer)
+    answer = re.sub(r"(?<![\w])\d{3,5}\.\d+(?![\w])", whole_gold_price, answer)
     return answer
 
 
