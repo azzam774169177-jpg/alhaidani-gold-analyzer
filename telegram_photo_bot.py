@@ -239,7 +239,7 @@ def handle_message(message: dict):
                 save_authorized_users(AUTHORIZED_USERS)
             send(chat_id, message_id, "✅ تم تفعيل عضويتك بنجاح. يمكنك الآن إرسال صور الشارت لطلب تحليل الذهب.")
         else:
-            send(chat_id, message_id, "🔒 كلمة المرور غير صحيحة. أدخل كلمة المرور المعتمدة لتفعيل التحليل.")
+            send(chat_id, message_id, "🔒 للحصول على كلمة مرور تفعيل البوت، تواصل مع الإدارة عبر تيليجرام: @M77A77A")
         return
 
     photos = message.get("photo") or []
@@ -247,9 +247,9 @@ def handle_message(message: dict):
         return
     if sender_id is None or int(sender_id) not in AUTHORIZED_USERS:
         if chat_type == "private":
-            send(chat_id, message_id, "🔒 البوت محمي بكلمة مرور. أرسل كلمة المرور في هذه المحادثة أولاً.")
+            send(chat_id, message_id, "🔒 البوت محمي بكلمة مرور. للحصول على كلمة المرور، تواصل مع الإدارة: @M77A77A ثم أرسلها هنا لتفعيل حسابك.")
         else:
-            send(chat_id, message_id, "🔒 التحليل محمي. أرسل كلمة المرور للبوت في الخاص ثم أعد إرسال الصورة.")
+            send(chat_id, message_id, "🔒 التحليل محمي بكلمة مرور. للحصول على كلمة المرور تواصل مع الإدارة: @M77A77A، ثم أرسلها للبوت في الخاص وأعد إرسال الصورة.")
         return
 
     try:
