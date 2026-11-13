@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-SYMBOL = "XAUUSD=X"  # Yahoo Finance spot-gold indicative quote; not the broker's executable quote
+SYMBOL = "GC=F"  # Yahoo Finance COMEX gold futures indicative quote; not the broker's executable quote
 SOURCE = "XAUUSD=X - Yahoo Finance spot gold indicative quote (not Weltrade broker feed)"
 
 
@@ -93,7 +93,7 @@ def analyze():
         "ema20": round(e20, 2), "ema50": round(e50, 2),
         "candle_time": candle_dt.isoformat(),
         "updated_utc": datetime.now(timezone.utc).isoformat(),
-        "notice": "تحليل آلي تجريبي على سعر الذهب الفوري الاسترشادي XAUUSD=X؛ ليس سعراً تنفيذياً من Weltrade وقد يختلف عنه. تحقق من سعر وسيطك قبل التنفيذ."
+        "notice": "تحليل آلي تجريبي على سعر عقود الذهب COMEX الاسترشادي GC=F؛ ليس سعراً تنفيذياً من Weltrade وقد يختلف عنه. تحقق من سعر وسيطك قبل التنفيذ."
     }
 
 
