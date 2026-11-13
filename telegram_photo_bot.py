@@ -188,6 +188,22 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
         value = float(match.group(0))
         return str(int(value + 0.5))
     answer = re.sub(r"(?<![\w])\d{3,5}\.\d+(?![\w])", whole_gold_price, answer)
+    # Enforce nearest-to-farthest target order when all three target prices are numeric.
+    target_labels = ["الهدف الأول", "الهدف الثاني", "الهدف الثالث"]
+    target_pattern = re.compile(r"^(الهدف الأول|الهدف الثاني|الهدف الثالث):\s*([0-9]+(?:\.[0-9]+)?)\s*$", re.MULTILINE)
+    target_matches = list(target_pattern.finditer(answer))
+    if len(target_matches) == 3 and {m.group(1) for m in target_matches} == set(target_labels):
+        direction = "BUY" if "BUY" in answer.upper() else ("SELL" if "SELL" in answer.upper() else "")
+        if direction:
+            prices = sorted((float(m.group(2)) for m in target_matches), reverse=(direction == "SELL"))
+            for label, price in zip(target_labels, prices):
+                answer = re.sub(
+                    rf"^{re.escape(label)}:\s*[0-9]+(?:\.[0-9]+)?\s*$",
+                    f"{label}: {int(price + 0.5)}",
+                    answer,
+                    count=1,
+                    flags=re.MULTILINE,
+                )
     return answer
 
 
