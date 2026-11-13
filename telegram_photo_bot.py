@@ -92,22 +92,72 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
         }],
         "generationConfig": {"maxOutputTokens": 550, "temperature": 0.2},
     }
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        + GEMINI_MODEL + ":generateContent"
-    )
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
-        method="POST",
-    )
-    try:
+    def call_model(model_name: str):
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            + model_name + ":generateContent"
+        )
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
+            method="POST",
+        )
         with urllib.request.urlopen(req, timeout=90) as response:
-            result = json.loads(response.read().decode("utf-8"))
+            return json.loads(response.read().decode("utf-8"))
+
+    def discover_vision_model():
+        # Ask Google's Models API which models this exact API key can use.
+        url = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"
+        req = urllib.request.Request(url, headers={"x-goog-api-key": GEMINI_API_KEY})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            listing = json.loads(response.read().decode("utf-8"))
+        available = {
+            item.get("name", "").removeprefix("models/"): item
+            for item in listing.get("models", [])
+            if "generateContent" in item.get("supportedGenerationMethods", [])
+        }
+        # Prefer current, low-cost multimodal Flash models, but only if this key lists them.
+        preferences = [
+            "gemini-3.5-flash-lite",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
+            "gemini-3.7-flash",
+            "gemini-3.6-flash",
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+        ]
+        for name in preferences:
+            if name in available:
+                return name
+        # Last resort: a listed Flash model that supports generateContent.
+        for name in available:
+            low = name.lower()
+            if "flash" in low and not any(x in low for x in ("audio", "tts", "image", "transcribe", "live")):
+                return name
+        raise RuntimeError(
+            "No compatible Flash vision model is listed for this API key. "
+            "Models returned: " + ", ".join(list(available)[:30])
+        )
+
+    selected_model = GEMINI_MODEL
+    try:
+        result = call_model(selected_model)
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:1200]
-        raise RuntimeError(f"Gemini API HTTP {exc.code}: {detail}") from exc
+        if exc.code != 404:
+            raise RuntimeError(f"Gemini API HTTP {exc.code}: {detail}") from exc
+        # The configured model may not be enabled for this project. Discover one the key can use.
+        try:
+            selected_model = discover_vision_model()
+            print(f"Configured Gemini model unavailable; retrying with listed model: {selected_model}", flush=True)
+            result = call_model(selected_model)
+        except urllib.error.HTTPError as retry_exc:
+            retry_detail = retry_exc.read().decode("utf-8", errors="replace")[:1200]
+            raise RuntimeError(f"Gemini fallback HTTP {retry_exc.code}: {retry_detail}") from retry_exc
+        except Exception as discovery_exc:
+            raise RuntimeError(f"Gemini model discovery failed: {type(discovery_exc).__name__}: {discovery_exc}") from discovery_exc
     chunks = []
     for candidate in result.get("candidates", []):
         for part in candidate.get("content", {}).get("parts", []):
@@ -165,7 +215,7 @@ def main():
     # Polling and webhook cannot run simultaneously for one Telegram bot token.
     telegram("deleteWebhook", {"drop_pending_updates": "false"})
     offset = None
-    print(f"Telegram XAUUSD photo-analysis worker started. GEMINI_API_KEY configured: {bool(GEMINI_API_KEY)}; model: {GEMINI_MODEL}", flush=True)
+    print(f"Telegram XAUUSD photo-analysis worker started. GEMINI_API_KEY configured: {bool(GEMINI_API_KEY)}; configured model: {GEMINI_MODEL}", flush=True)
     while True:
         try:
             params = {"timeout": 30, "allowed_updates": json.dumps(["message"])}
