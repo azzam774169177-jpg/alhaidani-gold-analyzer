@@ -1,25 +1,29 @@
 # alhaidani-gold-analyzer
 
-## AI Telegram chart-photo replies
+## Telegram XAUUSD chart-photo analyzer (Railway worker)
 
-The Render web service receives chart photos posted in the configured Telegram group, sends the image to the OpenAI Responses API, and replies to the same Telegram message in Arabic. The model may return BUY/SELL only when the screenshot gives enough readable evidence; otherwise it returns WAIT. Levels are estimates read from the screenshot, not live broker quotes or guaranteed trading advice.
+This repository runs a continuously running Telegram long-polling worker. Members send a chart screenshot to the bot in the configured group (or directly in a private chat); the worker sends the image to the OpenAI Responses API and replies in Arabic with BUY, SELL, or WAIT.
 
-### Required Render environment variables
+The analyzer only sees the submitted screenshot and optional caption. It does not receive live MT5/Weltrade quotes. Levels are estimates from the image, may be wrong, and are not guaranteed trading advice. It must return WAIT rather than invent unreadable prices or levels. This worker does not publish automatic market signals or place trades.
 
-- `TELEGRAM_BOT_TOKEN`: create/copy from BotFather; keep it only in Render Environment.
-- `TELEGRAM_WEBHOOK_SECRET`: a random secret string used to authenticate Telegram webhook requests.
-- `TELEGRAM_ALLOWED_CHAT_ID`: target group ID; set the actual group ID if it differs from the configured value.
-- `OPENAI_API_KEY`: OpenAI API key, stored only in Render Environment (never commit it to GitHub).
-- `OPENAI_MODEL`: optional; defaults to `gpt-6-astra`.
+## Deploy on Railway
 
-After saving environment variables, Render redeploys the service. The app configures the Telegram webhook on startup. Add the bot to the group, grant permission to read/reply, and disable BotFather privacy mode if it must receive ordinary group photos. Ensure no other webhook or polling service is using the same bot token.
+1. Create a Railway project and choose **Deploy from GitHub repo**.
+2. Select \`azzam774169177-jpg/alhaidani-gold-analyzer\`.
+3. Railway should build the included \`Dockerfile\`. Run it as a worker; no public domain or web service is required.
+4. In the Railway service, open **Variables** and add:
+   - \`TELEGRAM_BOT_TOKEN\`: token from BotFather.
+   - \`OPENAI_API_KEY\`: OpenAI API key.
+   - \`TELEGRAM_ALLOWED_CHAT_ID\`: target Telegram group ID (default in code is \`-1003960644699\`; set the actual ID if different).
+   - \`OPENAI_MODEL\`: optional; defaults to \`gpt-4.1-mini\`.
+5. Deploy/redeploy and check the deployment logs for: \`Telegram XAUUSD photo-analysis worker started.\`
+6. Add the bot to the group and grant permission to read/reply. If it must receive ordinary group photos, disable BotFather privacy mode. The bot also accepts photos sent in a private chat.
 
-### Important limitations
+Important: this worker calls Telegram \`deleteWebhook\` at startup because Telegram does not allow getUpdates polling and a webhook to operate at the same time for one bot token. Do not run another service with the same bot token. Never commit API keys or bot tokens to GitHub.
 
-- The photo reply feature is separate from automated market-signal publishing.
-- The model only sees the submitted screenshot and optional caption; it has no live MT5/Weltrade quote unless a separate trusted feed is integrated.
-- If price labels or the setup are unclear, it should reply WAIT rather than invent levels.
-- AI image analysis can be wrong. Verify every level and use strict risk management.
-- GitHub Actions scheduled every five minutes is not a real-time Telegram listener; this feature uses the Render webhook service.
-- The separate `analyzer.py` market-data pipeline uses Yahoo Finance indicative data, not Weltrade executable prices. The maintenance lock remains in place.
-- Never put Telegram, OpenAI, GitHub, or trading passwords in repository files.
+## Runtime and safety
+
+- Railway must keep this service running as a worker; do not configure it as a scheduled task.
+- OpenAI image analysis requires a valid API key and a model available to that API account that supports image input.
+- If the OpenAI model is unavailable, update \`OPENAI_MODEL\` to an image-capable model enabled for the account.
+- AI chart analysis can be wrong. Verify every level and apply independent risk management.
