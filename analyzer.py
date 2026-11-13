@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
+# Automatic five-minute XAUUSD indicative-price scan
 SYMBOL = "GC=F"  # Yahoo Finance COMEX gold futures indicative quote; not the broker's executable quote
 SOURCE = "XAUUSD=X - Yahoo Finance spot gold indicative quote (not Weltrade broker feed)"
 
