@@ -35,6 +35,12 @@ def save_authorized_users(users: set[int]) -> None:
 
 
 AUTHORIZED_USERS = load_authorized_users()
+# Collect member chart uploads briefly, then publish one consensus analysis.
+BATCH_WINDOW_SECONDS = int(os.environ.get("PHOTO_BATCH_WINDOW_SECONDS", "90"))
+PENDING_PHOTOS: list[tuple[bytes, str, str]] = []
+PENDING_CHAT_ID = None
+PENDING_REPLY_ID = None
+PENDING_LAST_AT = 0.0
 TG_API = f"https://api.telegram.org/bot{TOKEN}/"
 
 
@@ -80,11 +86,13 @@ def download_photo(file_id: str) -> tuple[bytes, str]:
     return raw, mime
 
 
-def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
+def analyze_images(images: list[tuple[bytes, str, str]]) -> str:
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not configured")
     prompt = (
-        "أنت محلل فني متخصص في الذهب XAUUSD. حلّل صورة الشارت وأرسل إشارة تداول جاهزة ومختصرة جداً، بلا شرح أو كلام إضافي. "
+        "أنت محلل فني متخصص في الذهب XAUUSD. حلّل جميع صور الشارت المرفقة كمجموعة واحدة، وقد تكون من أعضاء مختلفين أو أطر زمنية مختلفة. "
+        "استخرج المعلومات المشتركة فقط، وقارن الاتجاه والمستويات وبنية السوق بين الصور، ولا تعتبر تكرار الصورة تأكيداً مستقلاً. "
+        "أصدر إشارة واحدة موحدة للجروب فقط إذا اتفقت الأدلة الفنية بدرجة كافية؛ وإلا أخرج انتظاراً. "
         "استخدم إطار تحليل احترافي متعدد الطبقات: (1) بنية السوق HH/HL أو LH/LL وتغير الشخصية CHoCH/BOS، "
         "(2) السيولة فوق القمم وتحت القيعان المتساوية، ورصد sweep ثم الإغلاق العائد داخل النطاق، "
         "(3) مناطق العرض والطلب وOrder Blocks مع اشتراط وجود displacement واضح، "
@@ -94,7 +102,7 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
         "لا تعتبر أي منطقة وحدها سبباً كافياً للدخول: اطلب توافق عاملين أو أكثر وإشارة تأكيد واضحة مثل إغلاق/رفض/إعادة اختبار. "
         "إذا كانت الصورة لا تعرض سعراً أو فريماً مقروءاً، أو كانت الإشارات متضاربة، فالقرار انتظار. "
         "لا تدخل بعد حركة ممتدة أو شمعة اندفاعية متأخرة، ولا تقترح صفقة بعائد إلى مخاطرة أقل من 1:1.5 متى أمكن تقديره من الرسم. "
-        "تعليق العضو: " + (caption[:800] if caption else "لا يوجد") + "\\n"
+        "تعليقات الأعضاء المرفقة: " + " | ".join((caption[:300] if caption else "بدون تعليق") for _, _, caption in images)[:1500] + "\\n"
         "اقرأ الفريم الظاهر، وحدد الاتجاه BUY أو SELL فقط إذا وجدت فرصة فنية واضحة. "
         "استخرج سعر دخول محدداً، هدفاً واحداً واقعياً، ووقف خسارة واضحاً من مستويات الشارت. "
         "إذا كان الدخول يحتاج اختراقاً أو تأكيداً، اكتب شرط التفعيل بوضوح ولا تسمح بالدخول قبله. "
@@ -111,13 +119,13 @@ def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
     payload = {
         "contents": [{
             "role": "user",
-            "parts": [
-                {"text": prompt},
+            "parts": ([{"text": prompt}] + [
                 {"inline_data": {
-                    "mime_type": mime,
-                    "data": base64.b64encode(raw).decode("ascii")
-                }},
-            ],
+                    "mime_type": image_mime,
+                    "data": base64.b64encode(image_raw).decode("ascii")
+                }}
+                for image_raw, image_mime, _caption in images
+            ]),
         }],
         "generationConfig": {"maxOutputTokens": 550, "temperature": 0.2},
     }
@@ -263,28 +271,49 @@ def handle_message(message: dict):
 
     try:
         raw, mime = download_photo(photos[-1]["file_id"])
-        answer = analyze_image(raw, mime, message.get("caption", ""))
-        send(chat_id, message_id, answer)
+        if chat_type in ("group", "supergroup"):
+            global PENDING_CHAT_ID, PENDING_REPLY_ID, PENDING_LAST_AT
+            PENDING_PHOTOS.append((raw, mime, message.get("caption", "")))
+            PENDING_CHAT_ID = int(chat_id)
+            PENDING_REPLY_ID = int(message_id)
+            PENDING_LAST_AT = time.time()
+            print(f"Queued chart image; batch size={len(PENDING_PHOTOS)}", flush=True)
+        else:
+            answer = analyze_images([(raw, mime, message.get("caption", ""))])
+            send(chat_id, message_id, answer)
     except Exception as exc:
         error = str(exc)
         print(f"Photo processing failed: {type(exc).__name__}: {error}", flush=True)
-        if "GEMINI_API_KEY is not configured" in error:
-            user_error = "🔴 مفتاح Gemini غير مضاف في Railway. أضف GEMINI_API_KEY ضمن متغيرات الخدمة."
-        elif "HTTP 400" in error or "HTTP 403" in error:
-            user_error = "🔴 مفتاح Gemini أو صلاحية النموذج غير صحيحة. تحقق من المفتاح في Google AI Studio."
-        elif "HTTP 429" in error:
-            user_error = "🟠 وصلت إلى حد الاستخدام المجاني لـ Gemini أو حد الطلبات. انتظر تجدد الحصة ثم أعد المحاولة."
-        elif "HTTP 404" in error:
-            user_error = "🔴 نموذج Gemini غير متاح. تحقق من GEMINI_MODEL في Railway."
-        elif "URLError" in type(exc).__name__ or "timed out" in error.lower():
-            user_error = "🟠 تعذر الاتصال بخدمة التحليل مؤقتاً. حاول مجدداً بعد قليل."
-        else:
-            user_error = "🟡 تعذر تحليل الصورة. راجع سجلات Railway لمعرفة السبب."
         try:
-            send(chat_id, message_id, user_error)
+            send(chat_id, message_id, "🟠 تعذر استلام الصورة أو تحليلها مؤقتاً. حاول مجدداً بعد قليل.")
         except Exception as reply_exc:
             print(f"Telegram reply failed: {type(reply_exc).__name__}: {reply_exc}", flush=True)
 
+
+
+def flush_pending_photos(force: bool = False):
+    global PENDING_PHOTOS, PENDING_CHAT_ID, PENDING_REPLY_ID, PENDING_LAST_AT
+    if not PENDING_PHOTOS or (not force and time.time() - PENDING_LAST_AT < BATCH_WINDOW_SECONDS):
+        return
+    batch = PENDING_PHOTOS
+    target_chat = PENDING_CHAT_ID
+    reply_to = PENDING_REPLY_ID
+    PENDING_PHOTOS = []
+    PENDING_CHAT_ID = None
+    PENDING_REPLY_ID = None
+    PENDING_LAST_AT = 0.0
+    try:
+        print(f"Analyzing consensus from {len(batch)} member chart image(s)", flush=True)
+        answer = analyze_images(batch)
+        if target_chat is not None and reply_to is not None:
+            send(target_chat, reply_to, answer)
+    except Exception as exc:
+        print(f"Batch analysis failed: {type(exc).__name__}: {exc}", flush=True)
+        if target_chat is not None and reply_to is not None:
+            try:
+                send(target_chat, reply_to, "🟠 تعذر إكمال التحليل الموحّد للصور حالياً. حاولوا مجدداً بعد قليل.")
+            except Exception as reply_exc:
+                print(f"Telegram batch reply failed: {type(reply_exc).__name__}: {reply_exc}", flush=True)
 
 def main():
     if not TOKEN:
@@ -305,6 +334,8 @@ def main():
                 offset = int(update["update_id"]) + 1
                 message = update.get("message") or {}
                 handle_message(message)
+                flush_pending_photos()
+            flush_pending_photos()
         except Exception as exc:
             print(f"Polling error: {type(exc).__name__}: {exc}", flush=True)
             time.sleep(5)
