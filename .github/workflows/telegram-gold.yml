@@ -42,7 +42,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ""
-          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID || '-1003960644699' }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS || '-1003819420479' }}
         run: python telegram_notifier.py
 
       - name: Save signal and notifier state
@@ -73,7 +73,7 @@ jobs:
       - name: Validate manual quote and send price only
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID || '-1003960644699' }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '-1003819420479' }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
         run: |
           python - <<'PY'
@@ -135,13 +135,21 @@ jobs:
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
-          message = (
-              "👑 أسطورة المجال | إشعار هام\\n\\n"
-              "🛠️ البوت تحت الصيانة والتطوير حالياً.\\n"
-              "⛔ تم إيقاف صفقات البوت مؤقتاً حتى اكتمال التحديثات.\\n"
-              "يرجى عدم الاعتماد على أي إشارات آلية خلال فترة الصيانة.\\n"
-              "سنعلن لكم عند عودة البوت للعمل بإذن الله."
-          )
+          with open("maintenance_notice.json", "r", encoding="utf-8") as f:
+              paused = json.load(f).get("signals_paused") is True
+          if paused:
+              message = (
+                  "👑 أسطورة المجال | إشعار هام\\n\\n"
+                  "🛠️ البوت تحت الصيانة والتطوير حالياً.\\n"
+                  "⛔ تم إيقاف صفقات البوت مؤقتاً حتى اكتمال التحديثات."
+              )
+          else:
+              message = (
+                  "👑 أسطورة المجال | عودة بوت الصفقات 🤖🥇\\n\\n"
+                  "🟢 تم رفع إيقاف الصفقات واستئناف التحليل الآلي للذهب.\\n"
+                  "📡 السعر استرشادي من عقود الذهب COMEX (GC=F)، وقد يختلف عن سعر Weltrade/MT5.\\n"
+                  "⚠️ تحقق من السعر لدى وسيطك وإدارة المخاطر قبل التنفيذ."
+              )
           body = urllib.parse.urlencode({
               "chat_id": os.environ["TELEGRAM_CHAT_ID"],
               "text": message,
