@@ -1,84 +1,167 @@
 #!/usr/bin/env python3
-"""Long-polling Telegram group photo bot. Requires a continuously running worker."""
+"""Always-on Telegram photo-analysis worker using long polling and OpenAI vision."""
 from __future__ import annotations
-import json, os, time, urllib.parse, urllib.request
-from pathlib import Path
-from photo_chart_analyzer import analyze_chart_image
+
+import base64
+import json
+import os
+import time
+import urllib.parse
+import urllib.request
+import urllib.error
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "-1003960644699").strip()
-API = f"https://api.telegram.org/bot{TOKEN}/"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini").strip()
+TG_API = f"https://api.telegram.org/bot{TOKEN}/"
 
-def api(method, params=None, timeout=45):
-    data = urllib.parse.urlencode(params or {}).encode()
-    req = urllib.request.Request(API + method, data=data if params is not None else None)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        payload = json.loads(r.read().decode("utf-8"))
+
+def post_form(url: str, params: dict, timeout: int = 45):
+    data = urllib.parse.urlencode(params).encode()
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        payload = json.loads(response.read().decode("utf-8"))
     if not payload.get("ok"):
-        raise RuntimeError(payload.get("description", "Telegram API error"))
+        raise RuntimeError(payload.get("description", "API request failed"))
     return payload["result"]
 
-def send(chat_id, reply_id, text):
-    api("sendMessage", {
+
+def telegram(method: str, params: dict | None = None, timeout: int = 45):
+    if not TOKEN:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
+    return post_form(TG_API + method, params or {}, timeout)
+
+
+def send(chat_id: int, reply_id: int, message: str):
+    telegram("sendMessage", {
         "chat_id": str(chat_id),
         "reply_to_message_id": str(reply_id),
-        "text": text,
-        "disable_web_page_preview": "true"
+        "text": message[:4000],
+        "disable_web_page_preview": "true",
     })
 
-def get_photo_bytes(file_id):
-    info = api("getFile", {"file_id": file_id})
-    file_path = info["file_path"]
-    url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
-    with urllib.request.urlopen(url, timeout=35) as r:
-        return r.read()
 
-def format_result(result):
-    if result.get("status") == "WAIT":
-        return "👑 أسطورة المجال | فحص الشارت\n🟡 انتظار\n" + result.get("reason", "الصورة غير كافية للتحليل.")
-    direction = "🟢" if result["status"] == "UP" else "🔴"
-    return (
-        "👑 أسطورة المجال | فحص الشارت\n"
-        f"{direction} {result['bias']}\n"
-        f"🟢 بكسلات خضراء: {result['green_share']}%\n"
-        f"🔴 بكسلات حمراء: {result['red_share']}%\n"
-        "⚠️ قراءة بصرية تجريبية فقط؛ لا تتضمن سعراً أو دخولاً أو استوباً، ولا تعتبر توصية تداول."
+def download_photo(file_id: str) -> tuple[bytes, str]:
+    info = telegram("getFile", {"file_id": file_id})
+    path = info["file_path"]
+    url = f"https://api.telegram.org/file/bot{TOKEN}/{path}"
+    with urllib.request.urlopen(url, timeout=45) as response:
+        raw = response.read()
+    if len(raw) > 15 * 1024 * 1024:
+        raise ValueError("Image exceeds 15 MB")
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        mime = "image/png"
+    elif raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+        mime = "image/webp"
+    else:
+        mime = "image/jpeg"
+    return raw, mime
+
+
+def analyze_image(raw: bytes, mime: str, caption: str = "") -> str:
+    if not OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+    image_url = f"data:{mime};base64," + base64.b64encode(raw).decode("ascii")
+    prompt = (
+        "أنت مساعد لتحليل صور شارت الذهب XAUUSD. حلّل الصورة المرفقة فقط، ولا تدّعِ "
+        "أن لديك سعراً لحظياً أو بيانات MT5 مباشرة. تعليق العضو: "
+        + (caption[:800] if caption else "لا يوجد")
+        + "\nتحقق أولاً أن الصورة شارت تداول وأن الرمز XAUUSD ظاهر أو أن العضو ذكره. "
+        "اقرأ الأسعار فقط إذا كانت واضحة تماماً. لا تخترع مستويات أو مؤشرات أو أسعاراً. "
+        "إذا كانت الصورة غير واضحة أو الرمز غير مؤكد أو لا توجد فرصة مكتملة، أجب انتظاراً "
+        "واشرح السبب بجملة قصيرة. لا تعطِ BUY أو SELL إلا إذا كان اتجاه الدخول ووقف الخسارة "
+        "واضحين ويمكن تبريرهما من الصورة. لا تستخدم يقيناً مطلقاً ولا تعد بالربح.\n"
+        "إذا وجدت فرصة واضحة، اكتب بالعربية بهذا التنسيق المختصر:\n"
+        "👑 أسطورة المجال | تحليل صورة الشارت\n"
+        "🟢 BUY أو 🔴 SELL — XAUUSD\n"
+        "منطقة الدخول: ...\nوقف الخسارة: ...\nالهدف الأول: ...\nالهدف الثاني: ...\n"
+        "الهدف الثالث: ...\nسبب الإشارة: ...\n"
+        "اذكر أن المستويات تقديرية ومقروءة من الصورة وليست أسعاراً لحظية.\n"
+        "إذا لم تتوفر فرصة، ابدأ بـ 👑 أسطورة المجال | 🟡 انتظار."
     )
+    payload = {
+        "model": OPENAI_MODEL,
+        "input": [{
+            "role": "user",
+            "content": [
+                {"type": "input_text", "text": prompt},
+                {"type": "input_image", "image_url": image_url, "detail": "high"},
+            ],
+        }],
+        "max_output_tokens": 550,
+    }
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=90) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:1200]
+        raise RuntimeError(f"OpenAI API HTTP {exc.code}: {detail}") from exc
+    chunks = []
+    for item in result.get("output", []):
+        if item.get("type") == "message":
+            for part in item.get("content", []):
+                if part.get("type") == "output_text" and part.get("text"):
+                    chunks.append(part["text"])
+    answer = "\n".join(chunks).strip()
+    if not answer:
+        raise RuntimeError("OpenAI returned no text")
+    return answer
+
+
+def handle_message(message: dict):
+    chat = message.get("chat") or {}
+    chat_type = chat.get("type")
+    if chat_type not in ("private", "group", "supergroup"):
+        return
+    if chat_type in ("group", "supergroup") and ALLOWED_CHAT and str(chat.get("id")) != ALLOWED_CHAT:
+        return
+    photos = message.get("photo") or []
+    if not photos:
+        return
+    chat_id = chat.get("id")
+    message_id = message.get("message_id")
+    try:
+        raw, mime = download_photo(photos[-1]["file_id"])
+        answer = analyze_image(raw, mime, message.get("caption", ""))
+        send(chat_id, message_id, answer)
+    except Exception as exc:
+        print(f"Photo processing failed: {type(exc).__name__}: {exc}", flush=True)
+        try:
+            send(chat_id, message_id, "🟡 تعذر تحليل الصورة حالياً. تأكد من إعداد مفاتيح الخدمة وأرسل صورة واضحة مجدداً.")
+        except Exception as reply_exc:
+            print(f"Telegram reply failed: {type(reply_exc).__name__}: {reply_exc}", flush=True)
+
 
 def main():
     if not TOKEN:
-        raise SystemExit("ضع TELEGRAM_BOT_TOKEN في متغيرات البيئة؛ لا تضعه داخل الكود.")
-    # Avoid discarding pending updates on startup.
+        raise SystemExit("Missing TELEGRAM_BOT_TOKEN environment variable")
+    if not OPENAI_API_KEY:
+        raise SystemExit("Missing OPENAI_API_KEY environment variable")
+    # Polling and webhook cannot run simultaneously for one Telegram bot token.
+    telegram("deleteWebhook", {"drop_pending_updates": "false"})
     offset = None
-    print("Photo analyzer polling started.")
+    print("Telegram XAUUSD photo-analysis worker started.", flush=True)
     while True:
         try:
             params = {"timeout": 30, "allowed_updates": json.dumps(["message"])}
             if offset is not None:
                 params["offset"] = offset
-            updates = api("getUpdates", params, timeout=40)
+            updates = telegram("getUpdates", params, timeout=40)
             for update in updates:
                 offset = int(update["update_id"]) + 1
-                msg = update.get("message") or {}
-                chat = msg.get("chat") or {}
-                if chat.get("type") not in ("group", "supergroup"):
-                    continue
-                if ALLOWED_CHAT and str(chat.get("id")) != ALLOWED_CHAT:
-                    continue
-                photos = msg.get("photo") or []
-                if not photos:
-                    continue
-                try:
-                    # Telegram orders photo sizes from smallest to largest.
-                    image_bytes = get_photo_bytes(photos[-1]["file_id"])
-                    result = analyze_chart_image(image_bytes)
-                    send(chat["id"], msg["message_id"], format_result(result))
-                except Exception as exc:
-                    print(f"Photo processing error: {type(exc).__name__}: {exc}")
-                    send(chat["id"], msg["message_id"], "🟡 تعذر فحص الصورة حالياً. أعد إرسال لقطة واضحة للشارت.")
+                message = update.get("message") or {}
+                handle_message(message)
         except Exception as exc:
-            print(f"Polling error: {type(exc).__name__}: {exc}")
+            print(f"Polling error: {type(exc).__name__}: {exc}", flush=True)
             time.sleep(5)
+
 
 if __name__ == "__main__":
     main()
