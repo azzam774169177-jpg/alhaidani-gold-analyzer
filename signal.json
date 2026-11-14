@@ -4,13 +4,13 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not Weltrade broker feed)",
   "timeframe": "15m",
   "signal": "WAIT",
-  "reason": "آخر شمعة قديمة (59202 ثانية)؛ ننتظر بيانات حديثة",
+  "reason": "آخر شمعة قديمة (61919 ثانية)؛ ننتظر بيانات حديثة",
   "price": 0,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "candle_time": "2026-11-14T14:11:42.647232+00:00",
-  "updated_utc": "2026-11-14T14:11:42.647232+00:00"
+  "candle_time": "2026-11-14T14:56:59.885619+00:00",
+  "updated_utc": "2026-11-14T14:56:59.885619+00:00"
 }
