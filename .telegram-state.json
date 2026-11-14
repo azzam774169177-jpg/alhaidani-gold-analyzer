@@ -1,5 +1,5 @@
 {
-  "last_signal_key": "58437c2a2fc0fedff37599c609b34a5ff0d8fe0996930d7cd59b3136631ac957",
+  "last_signal_key": "e44b29463aacb07be46fb842b5987604b22496b3090dbe5f8260223273ecfbe7",
   "last_bar_ts": 1794604727,
   "active_trades": [
     {
@@ -233,7 +233,7 @@
       "result_delta": -11.109999999999673
     }
   ],
-  "last_daily_yemen_day": "2026-11-14",
+  "last_daily_yemen_day": "2026-11-15",
   "last_weekly_key": "2026-W46",
   "last_monthly_key": null,
   "last_error": null,
