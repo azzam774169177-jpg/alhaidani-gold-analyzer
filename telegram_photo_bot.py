@@ -259,13 +259,18 @@ def handle_message(message: dict):
     text_message = (message.get("text") or "").strip()
 
     if chat_type == "private" and text_message:
+        # Activation is required only once per Telegram user ID.
+        # Keep AUTH_FILE on a persistent Railway volume to retain access after redeploys.
+        if sender_id is not None and int(sender_id) in AUTHORIZED_USERS:
+            send(chat_id, message_id, "✅ حسابك مفعل بالفعل. لن تحتاج إلى كلمة المرور مرة أخرى. أرسل صورة الشارت للحصول على تحليل خاص.")
+            return
         if text_message == ACCESS_PASSWORD:
             if sender_id is not None:
                 AUTHORIZED_USERS.add(int(sender_id))
                 save_authorized_users(AUTHORIZED_USERS)
-            send(chat_id, message_id, "✅ تم تفعيل عضويتك بنجاح. أرسل صورة الشارت هنا لتحصل على تحليل خاص. ستُستخدم المؤشرات المستخلصة من الصورة أيضاً ضمن التحليل التجميعي للجروب، دون نشر صورتك أو اسمك.")
+            send(chat_id, message_id, "✅ تم تفعيل عضويتك بنجاح. لن تحتاج إلى كلمة المرور مرة أخرى من هذا الحساب. أرسل صورة الشارت هنا لتحصل على تحليل خاص. ستُستخدم المؤشرات المستخلصة من صورتك أيضاً ضمن التحليل التجميعي للجروب، دون نشر صورتك أو اسمك.")
         else:
-            send(chat_id, message_id, "🔒 للحصول على كلمة مرور تفعيل البوت، تواصل مع الإدارة عبر تيليجرام: @M77A77A")
+            send(chat_id, message_id, "🔒 البوت محمي بكلمة مرور لمرة واحدة فقط. للحصول على كلمة مرور التفعيل، تواصل مع الإدارة عبر تيليجرام: @M77A77A")
         return
 
     photos = message.get("photo") or []
