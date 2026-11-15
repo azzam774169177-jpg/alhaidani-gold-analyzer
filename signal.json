@@ -4,13 +4,17 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not Weltrade broker feed)",
   "timeframe": "15m",
   "signal": "WAIT",
-  "reason": "آخر شمعة قديمة (177241 ثانية)؛ ننتظر بيانات حديثة",
-  "price": 0,
+  "reason": "لا يوجد توافق واضح بين السعر والمتوسطات",
+  "price": 3890.3,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "candle_time": "2026-11-15T22:59:01.651292+00:00",
-  "updated_utc": "2026-11-15T22:59:01.651292+00:00"
+  "atr_14": 6.24,
+  "ema20": 3883.56,
+  "ema50": 3887.71,
+  "candle_time": "2026-11-15T23:30:00+00:00",
+  "updated_utc": "2026-11-15T23:47:05.086895+00:00",
+  "notice": "تحليل آلي تجريبي على سعر عقود الذهب COMEX الاسترشادي GC=F؛ ليس سعراً تنفيذياً من Weltrade وقد يختلف عنه. تحقق من سعر وسيطك قبل التنفيذ."
 }
