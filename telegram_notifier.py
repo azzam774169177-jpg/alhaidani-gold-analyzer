@@ -436,6 +436,36 @@ def main():
         active = state.setdefault("active_trades", [])
         closed = state.setdefault("closed_trades", [])
 
+        # A unique timestamp in cancel_trade.json requests one manual cancellation.
+        # Only PENDING setups are cancelled; already activated trades are not closed
+        # because cancellation is not proof of execution/closure at the broker.
+        try:
+            with open("cancel_trade.json", "r", encoding="utf-8") as cancel_file:
+                cancel_request = json.load(cancel_file)
+        except FileNotFoundError:
+            cancel_request = {}
+        cancel_request_id = cancel_request.get("cancel_requested_at")
+        if (
+            isinstance(cancel_request_id, str)
+            and cancel_request_id.strip()
+            and cancel_request_id != state.get("last_cancel_request")
+        ):
+            cancel_reason = html.escape(str(cancel_request.get("reason") or "إلغاء يدوي من الإدارة"))
+            cancelled_count = 0
+            for trade in active:
+                if trade.get("status") == "PENDING":
+                    trade["status"] = "CANCELLED"
+                    trade["cancelled_at"] = now.isoformat()
+                    trade["cancel_reason"] = str(cancel_request.get("reason") or "إلغاء يدوي من الإدارة")
+                    events.append(
+                        "🚫 <b>تم إلغاء الصفقة ❌</b>\\n"
+                        f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])}\\n"
+                        f"السبب: {cancel_reason}"
+                    )
+                    cancelled_count += 1
+            state["last_cancel_request"] = cancel_request_id
+            print(f"Manual cancellation request processed; pending_cancelled={cancelled_count}")
+
         # Register only actionable setups backed by fresh signal, candle, and quote data.
         actionable_fresh = (
             signal in ("BUY", "SELL")
@@ -550,6 +580,7 @@ def main():
             event for event in events
             if (
                 "تم تفعيل الصفقة" in event
+                or "تم إلغاء الصفقة" in event
                 or "تم تحقيق الهدف TP1" in event
                 or "تم ضرب وقف الخسارة" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
