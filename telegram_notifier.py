@@ -530,6 +530,21 @@ def main():
                 f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}"
             )
             send_telegram(message)
+
+        # Publish one-time trade outcome alerts. The monitor emits these events
+        # only while processing previously unseen one-minute bars; state is
+        # committed by the workflow after successful delivery.
+        status_events = [
+            event for event in events
+            if (
+                "تم تحقيق الهدف TP1" in event
+                or "تم ضرب وقف الخسارة" in event
+                or "نتيجة غير محسومة داخل شمعة واحدة" in event
+            )
+        ]
+        for event in status_events:
+            send_telegram("👑 <b>أسطورة المجال | تحديث الصفقة</b>\\n\\n" + event)
+
         state["last_error"] = None
         save_state(state)
         quote_label = num(latest["close"]) if latest else "unavailable"
