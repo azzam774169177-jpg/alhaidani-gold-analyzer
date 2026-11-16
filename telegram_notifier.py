@@ -326,9 +326,12 @@ def process_bar_for_trade(trade, bar, events):
         trade["close_price"] = float(trade["stop_loss"])
         trade["result_delta"] = favorable_distance(trade, trade["stop_loss"])
         trade["last_checked_bar"] = bar["ts"]
+        stop_distance = abs(float(trade["stop_loss"]) - float(trade["entry"]))
+        stop_pips = int(round(stop_distance))
         events.append(
             f"{outcome}\nالاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
             f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/3\n"
+            f"🛑 Stop Loss: {stop_pips} Pips ❌\n"
             "لم نحسب صافي النقاط للنتيجة المختلطة لأن نسبة الإغلاق الجزئي غير محددة."
         )
         return
