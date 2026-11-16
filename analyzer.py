@@ -5,10 +5,14 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-# PRO multi-timeframe signal engine. Signals only: no broker order execution.
+# PRO multi-timeframe engine. Analysis/signals only; never places broker orders.
 SYMBOL = "GC=F"  # Indicative COMEX futures proxy, not broker-executable XAUUSD.
 SOURCE = "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)"
 MIN_BARS = 60
+SWING_WINDOW = 2
+MAX_EMA_EXTENSION_ATR = 1.25
+BUY_EXHAUSTION_RSI = 68
+SELL_EXHAUSTION_RSI = 32
 
 
 def utc_now():
@@ -23,8 +27,7 @@ def wait_result(reason, candle_time=None, details=None):
         "entry": None, "stop_loss": None, "take_profit_1": None,
         "take_profit_2": None, "take_profit_3": None,
         "candle_time": candle_time or now.isoformat(),
-        "updated_utc": now.isoformat(),
-        "execution_mode": "SIGNALS_ONLY",
+        "updated_utc": now.isoformat(), "execution_mode": "SIGNALS_ONLY",
         "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك."
     }
     if details:
@@ -38,7 +41,7 @@ def normalize_columns(data):
     required = {"Open", "High", "Low", "Close"}
     if not required.issubset(data.columns):
         raise ValueError("بيانات OHLC غير مكتملة")
-    data = data[list(required)].copy()
+    data = data[["Open", "High", "Low", "Close"]].copy()
     data = data.apply(pd.to_numeric, errors="coerce").dropna()
     if data.index.tz is None:
         data.index = data.index.tz_localize("UTC")
@@ -48,7 +51,6 @@ def normalize_columns(data):
 
 
 def resample_ohlc(data, rule, now):
-    # Build higher timeframes only from completed M15 candles.
     aggregated = data.resample(rule, label="right", closed="left", origin="epoch").agg({
         "Open": "first", "High": "max", "Low": "min", "Close": "last"
     }).dropna()
@@ -70,7 +72,7 @@ def indicators(candles, name):
     last = candles.iloc[-1]
     e20, e50 = float(ema20.iloc[-1]), float(ema50.iloc[-1])
     price = float(last["Close"])
-    prior_e20 = float(ema20.iloc[-4]) if len(ema20) >= 4 else e20
+    prior_e20 = float(ema20.iloc[-4])
     if price > e20 > e50 and e20 > prior_e20:
         trend = "BUY"
     elif price < e20 < e50 and e20 < prior_e20:
@@ -84,6 +86,49 @@ def indicators(candles, name):
     }
 
 
+def atr_value(candles, period=14):
+    previous = candles["Close"].shift(1)
+    true_range = pd.concat([
+        candles["High"] - candles["Low"],
+        (candles["High"] - previous).abs(),
+        (candles["Low"] - previous).abs()
+    ], axis=1).max(axis=1)
+    value = float(true_range.rolling(period).mean().iloc[-1])
+    if not pd.notna(value) or value <= 0:
+        raise ValueError("تعذر حساب ATR صالح")
+    return value
+
+
+def confirmed_swings(candles, window=SWING_WINDOW, lookback=80):
+    """Return the latest confirmed fractal swing high/low; right-side bars confirm pivots."""
+    sample = candles.tail(lookback)
+    highs, lows = [], []
+    for i in range(window, len(sample) - window):
+        high = float(sample["High"].iloc[i])
+        low = float(sample["Low"].iloc[i])
+        left_high = sample["High"].iloc[i-window:i]
+        right_high = sample["High"].iloc[i+1:i+window+1]
+        left_low = sample["Low"].iloc[i-window:i]
+        right_low = sample["Low"].iloc[i+1:i+window+1]
+        if high > float(left_high.max()) and high >= float(right_high.max()):
+            highs.append((sample.index[i], high))
+        if low < float(left_low.min()) and low <= float(right_low.min()):
+            lows.append((sample.index[i], low))
+    return (highs[-1][1] if highs else None, lows[-1][1] if lows else None)
+
+
+def structure_break(candles, direction):
+    swing_high, swing_low = confirmed_swings(candles)
+    close = float(candles["Close"].iloc[-1])
+    if direction == "BUY":
+        broken = swing_high is not None and close > swing_high
+        level = swing_high
+    else:
+        broken = swing_low is not None and close < swing_low
+        level = swing_low
+    return {"confirmed": bool(broken), "level": round(level, 2) if level is not None else None}
+
+
 def analyze():
     now = utc_now()
     raw = yf.download(
@@ -94,7 +139,7 @@ def analyze():
         return wait_result("مصدر GC=F لم يُرجع بيانات حديثة")
     candles = normalize_columns(raw)
 
-    # Yahoo timestamps 15m candles by their opening time; discard a still-forming candle.
+    # Yahoo timestamps M15 candles by opening time; discard any still-forming candle.
     candles = candles.loc[candles.index + pd.Timedelta(minutes=15) <= pd.Timestamp(now)]
     if len(candles) < MIN_BARS:
         return wait_result("بيانات M15 المكتملة غير كافية")
@@ -108,83 +153,116 @@ def analyze():
     m15_info = indicators(candles, "M15")
     h1_info = indicators(h1, "H1")
     h4_info = indicators(h4, "H4")
+    details = {"M15": m15_info, "H1": h1_info, "H4": h4_info}
 
-    # Momentum confirmation on the entry timeframe.
     m15_rsi = m15_info["rsi14"]
     if m15_rsi is None:
-        return wait_result("تعذر حساب زخم RSI على M15", m15_info["candle_time"])
-    if m15_info["trend"] == "BUY":
-        momentum_ok = 50 <= m15_rsi <= 72
-    elif m15_info["trend"] == "SELL":
-        momentum_ok = 28 <= m15_rsi <= 50
-    else:
-        momentum_ok = False
+        return wait_result("تعذر حساب زخم RSI على M15", m15_info["candle_time"], details)
 
-    details = {"M15": m15_info, "H1": h1_info, "H4": h4_info}
     directions = [h4_info["trend"], h1_info["trend"], m15_info["trend"]]
-    if len(set(directions)) != 1 or directions[0] not in ("BUY", "SELL"):
+    normal_alignment = len(set(directions)) == 1 and directions[0] in ("BUY", "SELL")
+    candidate = None
+    reversal_mode = False
+    structure = {"confirmed": False, "level": None}
+
+    if normal_alignment:
+        candidate = directions[0]
+    elif h1_info["trend"] == m15_info["trend"] and h1_info["trend"] in ("BUY", "SELL"):
+        # Permit an early reversal against H4 only after H1+M15 agree and M15 breaks
+        # its latest confirmed swing in the new direction (CHoCH-style confirmation).
+        candidate = h1_info["trend"]
+        structure = structure_break(candles, candidate)
+        reversal_mode = h4_info["trend"] != candidate
+        if reversal_mode and not structure["confirmed"]:
+            details["reversal_check"] = {
+                "candidate": candidate, "structure_break": structure,
+                "status": "WAITING_FOR_CONFIRMED_STRUCTURE_BREAK"
+            }
+            return wait_result(
+                "احتمال انعكاس مبكر، لكن لم يتأكد كسر البنية السعرية على M15؛ ننتظر ولا نطارد الاتجاه القديم.",
+                m15_info["candle_time"], details
+            )
+    else:
         return wait_result(
-            "تعارض أو عدم اكتمال توافق الاتجاه بين H4 وH1 وM15؛ لا توجد إشارة.",
+            "تعارض أو عدم اكتمال توافق H1 وM15؛ لا توجد إشارة مؤكدة.",
             m15_info["candle_time"], details
         )
+
+    momentum_ok = (
+        50 <= m15_rsi <= 68 if candidate == "BUY"
+        else 32 <= m15_rsi <= 50
+    )
     if not momentum_ok:
         return wait_result(
-            f"الاتجاه متوافق لكن الزخم غير مؤكد على M15 (RSI={m15_rsi:.1f}).",
+            f"الزخم غير مناسب أو قد يكون مستنفداً لاتجاه {candidate} (RSI={m15_rsi:.1f})؛ تم منع مطاردة الحركة.",
             m15_info["candle_time"], details
         )
 
-    # ATR(14) on M15 for volatility-adjusted risk levels.
-    prev_close = candles["Close"].shift(1)
-    true_range = pd.concat([
-        candles["High"] - candles["Low"],
-        (candles["High"] - prev_close).abs(),
-        (candles["Low"] - prev_close).abs()
-    ], axis=1).max(axis=1)
-    atr = float(true_range.rolling(14).mean().iloc[-1])
+    atr = atr_value(candles)
     price = float(candles["Close"].iloc[-1])
-    if not pd.notna(atr) or atr <= 0:
-        return wait_result("تعذر حساب ATR صالح على M15", m15_info["candle_time"], details)
+    ema20 = float(candles["Close"].ewm(span=20, adjust=False).mean().iloc[-1])
+    extension_atr = abs(price - ema20) / atr
+    if extension_atr > MAX_EMA_EXTENSION_ATR:
+        details["anti_chase"] = {
+            "extension_atr": round(extension_atr, 2),
+            "maximum_allowed_atr": MAX_EMA_EXTENSION_ATR,
+            "status": "BLOCKED_OVEREXTENDED"
+        }
+        return wait_result(
+            f"تم منع إشارة {candidate}: السعر ابتعد عن EMA20 بمقدار {extension_atr:.2f} ATR؛ لا نطارد الحركة.",
+            m15_info["candle_time"], details
+        )
 
-    # Recent support/resistance from the 20 completed candles before the current one.
     recent = candles.iloc[-21:-1]
     support = float(recent["Low"].min())
     resistance = float(recent["High"].max())
-    if directions[0] == "BUY":
+    if candidate == "BUY":
         room = resistance - price
         if room < 0.6 * atr:
-            return wait_result("المقاومة قريبة؛ نسبة المساحة المتاحة لا تبرر إشارة شراء.", m15_info["candle_time"], details)
+            return wait_result("المقاومة قريبة؛ المساحة المتاحة لا تبرر شراءً جديداً.", m15_info["candle_time"], details)
         entry = price
         stop = min(entry - 1.5 * atr, support - 0.1 * atr)
         risk = entry - stop
         targets = [entry + risk, entry + 2 * risk, entry + 3 * risk]
-        signal = "BUY"
     else:
         room = price - support
         if room < 0.6 * atr:
-            return wait_result("الدعم قريب؛ نسبة المساحة المتاحة لا تبرر إشارة بيع.", m15_info["candle_time"], details)
+            return wait_result("الدعم قريب؛ المساحة المتاحة لا تبرر بيعاً جديداً.", m15_info["candle_time"], details)
         entry = price
         stop = max(entry + 1.5 * atr, resistance + 0.1 * atr)
         risk = stop - entry
         targets = [entry - risk, entry - 2 * risk, entry - 3 * risk]
-        signal = "SELL"
 
     rounded = lambda value: round(float(value), 2)
+    details["anti_chase"] = {
+        "extension_atr": round(extension_atr, 2),
+        "maximum_allowed_atr": MAX_EMA_EXTENSION_ATR,
+        "status": "PASSED"
+    }
+    details["structure"] = {
+        "mode": "REVERSAL_CONFIRMED" if reversal_mode else "TREND_CONTINUATION",
+        "break": structure if reversal_mode else structure_break(candles, candidate)
+    }
+    reason = (
+        "تأكيد انعكاس مبكر: توافق H1 وM15 مع كسر بنية M15، "
+        "وزخم ومسافة سعرية مقبولان."
+        if reversal_mode else
+        "توافق H4 وH1 وM15 مع زخم غير مستنفد، وعدم ابتعاد مفرط عن EMA20."
+    )
     return {
         "symbol": "XAUUSD", "market_proxy": SYMBOL, "data_source": SOURCE,
-        "timeframe": "M15/H1/H4", "signal": signal,
-        "reason": "توافق اتجاه H4 وH1 وM15 مع تأكيد زخم RSI ومساحة كافية حتى مستوى الدعم/المقاومة.",
+        "timeframe": "M15/H1/H4", "signal": candidate, "reason": reason,
         "price": rounded(price), "entry": rounded(entry),
         "stop_loss": rounded(stop),
         "take_profit_1": rounded(targets[0]),
         "take_profit_2": rounded(targets[1]),
         "take_profit_3": rounded(targets[2]),
         "atr_14": rounded(atr), "support_20": rounded(support),
-        "resistance_20": rounded(resistance),
-        "rsi14_m15": round(m15_rsi, 2),
-        "timeframes": details,
-        "candle_time": candles.index[-1].isoformat(),
-        "updated_utc": now.isoformat(),
-        "execution_mode": "SIGNALS_ONLY",
+        "resistance_20": rounded(resistance), "rsi14_m15": round(m15_rsi, 2),
+        "ema20_extension_atr": round(extension_atr, 2),
+        "signal_mode": "REVERSAL_CONFIRMED" if reversal_mode else "TREND_CONTINUATION",
+        "timeframes": details, "candle_time": candles.index[-1].isoformat(),
+        "updated_utc": now.isoformat(), "execution_mode": "SIGNALS_ONLY",
         "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. GC=F سعر عقود COMEX استرشادي وقد يختلف عن XAUUSD لدى وسيطك؛ تحقق من السعر وإدارة المخاطر."
     }
 
