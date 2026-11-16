@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "5461a435d3844388b7e15047736aceb17017961514b07fc0cb365a94e5f691bb",
-  "last_bar_ts": 1794804395,
+  "last_signal_key": "4e18afaf692cb1e1cdf6e263ab63db08ea307ae2ff83df253fcf3cc9419a02f3",
+  "last_bar_ts": 1794808581,
   "active_trades": [
     {
       "signal_key": "21dcab4315c5599244af7e5cb21b303a83f7d57812dcae68b108e88b8bc908b5",
@@ -16,28 +16,31 @@
       "candle_time": "2026-11-16T03:00:00+00:00",
       "created_at": "2026-11-16T03:15:21.010236+00:00",
       "status": "ACTIVE",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1794804395,
+      "highest_target": 2,
+      "target_hit_times": {
+        "1": "2026-11-16T05:46:00+00:00",
+        "2": "2026-11-16T05:50:00+00:00"
+      },
+      "last_checked_bar": 1794808581,
       "activated_at": "2026-11-16T03:07:00+00:00"
     },
     {
-      "signal_key": "5461a435d3844388b7e15047736aceb17017961514b07fc0cb365a94e5f691bb",
+      "signal_key": "4e18afaf692cb1e1cdf6e263ab63db08ea307ae2ff83df253fcf3cc9419a02f3",
       "side": "SELL",
-      "entry": 3874.9,
-      "stop_loss": 3887.68,
+      "entry": 3838.2,
+      "stop_loss": 3860.02,
       "targets": [
-        3862.12,
-        3849.34,
-        3836.55
+        3816.38,
+        3794.55,
+        3772.73
       ],
-      "signal_updated_utc": "2026-11-16T04:56:38.887225+00:00",
-      "candle_time": "2026-11-16T04:45:00+00:00",
-      "created_at": "2026-11-16T04:56:39.024063+00:00",
+      "signal_updated_utc": "2026-11-16T06:06:23.473659+00:00",
+      "candle_time": "2026-11-16T05:45:00+00:00",
+      "created_at": "2026-11-16T06:06:23.628970+00:00",
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794804395
+      "last_checked_bar": 1794808581
     }
   ],
   "closed_trades": [
@@ -306,6 +309,32 @@
       "closed_at": "2026-11-16T02:08:00+00:00",
       "close_price": 3884.43,
       "result_delta": -16.230000000000018
+    },
+    {
+      "signal_key": "5461a435d3844388b7e15047736aceb17017961514b07fc0cb365a94e5f691bb",
+      "side": "SELL",
+      "entry": 3874.9,
+      "stop_loss": 3887.68,
+      "targets": [
+        3862.12,
+        3849.34,
+        3836.55
+      ],
+      "signal_updated_utc": "2026-11-16T04:56:38.887225+00:00",
+      "candle_time": "2026-11-16T04:45:00+00:00",
+      "created_at": "2026-11-16T04:56:39.024063+00:00",
+      "status": "WIN_TP3",
+      "highest_target": 3,
+      "target_hit_times": {
+        "1": "2026-11-16T05:46:00+00:00",
+        "2": "2026-11-16T05:49:00+00:00",
+        "3": "2026-11-16T05:55:00+00:00"
+      },
+      "last_checked_bar": 1794808500,
+      "activated_at": "2026-11-16T05:17:00+00:00",
+      "closed_at": "2026-11-16T05:55:00+00:00",
+      "close_price": 3836.55,
+      "result_delta": 38.34999999999991
     }
   ],
   "last_daily_yemen_day": "2026-11-16",
@@ -313,5 +342,5 @@
   "last_monthly_key": null,
   "last_error": null,
   "last_quote_warning": null,
-  "last_announced_key": "5461a435d3844388b7e15047736aceb17017961514b07fc0cb365a94e5f691bb"
+  "last_announced_key": "4e18afaf692cb1e1cdf6e263ab63db08ea307ae2ff83df253fcf3cc9419a02f3"
 }
