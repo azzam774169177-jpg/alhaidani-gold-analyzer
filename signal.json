@@ -1,20 +1,48 @@
 {
   "symbol": "XAUUSD",
   "market_proxy": "GC=F",
-  "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not Weltrade broker feed)",
-  "timeframe": "15m",
+  "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
+  "timeframe": "M15/H1/H4",
   "signal": "SELL",
-  "reason": "اتجاه هابط: السعر أسفل EMA20 وEMA20 أسفل EMA50",
-  "price": 3858.3,
-  "entry": 3858.3,
-  "stop_loss": 3876.3,
-  "take_profit_1": 3840.3,
-  "take_profit_2": 3822.3,
-  "take_profit_3": 3804.3,
-  "atr_14": 12.0,
-  "ema20": 3866.31,
-  "ema50": 3876.61,
+  "reason": "توافق اتجاه H4 وH1 وM15 مع تأكيد زخم RSI ومساحة كافية حتى مستوى الدعم/المقاومة.",
+  "price": 3858.2,
+  "entry": 3858.2,
+  "stop_loss": 3891.49,
+  "take_profit_1": 3824.91,
+  "take_profit_2": 3791.62,
+  "take_profit_3": 3758.33,
+  "atr_14": 11.89,
+  "support_20": 3835.2,
+  "resistance_20": 3890.3,
+  "rsi14_m15": 43.52,
+  "timeframes": {
+    "M15": {
+      "trend": "SELL",
+      "price": 3858.199951171875,
+      "ema20": 3864.7618207029923,
+      "ema50": 3874.7275820253603,
+      "rsi14": 43.51854506162389,
+      "candle_time": "2026-11-16T07:15:00+00:00"
+    },
+    "H1": {
+      "trend": "SELL",
+      "price": 3854.800048828125,
+      "ema20": 3880.494239759665,
+      "ema50": 3911.780362171398,
+      "rsi14": 37.553791323023304,
+      "candle_time": "2026-11-16T07:00:00+00:00"
+    },
+    "H4": {
+      "trend": "SELL",
+      "price": 3876.800048828125,
+      "ema20": 3937.1625652745533,
+      "ema50": 3989.7894615134414,
+      "rsi14": 33.85964371834356,
+      "candle_time": "2026-11-16T04:00:00+00:00"
+    }
+  },
   "candle_time": "2026-11-16T07:15:00+00:00",
-  "updated_utc": "2026-11-16T07:26:16.477097+00:00",
-  "notice": "تحليل آلي تجريبي على سعر عقود الذهب COMEX الاسترشادي GC=F؛ ليس سعراً تنفيذياً من Weltrade وقد يختلف عنه. تحقق من سعر وسيطك قبل التنفيذ."
+  "updated_utc": "2026-11-16T07:37:47.410696+00:00",
+  "execution_mode": "SIGNALS_ONLY",
+  "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. GC=F سعر عقود COMEX استرشادي وقد يختلف عن XAUUSD لدى وسيطك؛ تحقق من السعر وإدارة المخاطر."
 }
