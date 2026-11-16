@@ -543,7 +543,7 @@ def main():
             )
         ]
         for event in status_events:
-            send_telegram("👑 <b>أسطورة المجال | تحديث الصفقة</b>\\n\\n" + event)
+            send_telegram("👑 <b>أسطورة المجال | تحديث الصفقة</b>\n\n" + event)
 
         state["last_error"] = None
         save_state(state)
