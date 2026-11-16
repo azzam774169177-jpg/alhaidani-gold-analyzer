@@ -116,7 +116,7 @@ def load_admin_controls():
     defaults = {
         "signals_paused": False, "max_concurrent_trades": 3,
         "min_quality_score": 65, "max_consecutive_losses": 2,
-        "daily_loss_limit_r": 2
+        "daily_loss_limit_losses": 2
     }
     try:
         with open("admin_controls.json", "r", encoding="utf-8") as f:
@@ -128,7 +128,7 @@ def load_admin_controls():
     defaults["max_concurrent_trades"] = max(1, min(3, int(defaults["max_concurrent_trades"])))
     defaults["min_quality_score"] = max(0, min(100, int(defaults["min_quality_score"])))
     defaults["max_consecutive_losses"] = max(1, int(defaults["max_consecutive_losses"]))
-    defaults["daily_loss_limit_r"] = max(1, int(defaults["daily_loss_limit_r"]))
+    defaults["daily_loss_limit_losses"] = max(1, int(defaults["daily_loss_limit_losses"]))
     return defaults
 
 
@@ -578,7 +578,7 @@ def main():
             consecutive_losses += 1
         risk_locked = (
             state.get("risk_pause_day") == day_key
-            or len(closed_today) >= controls["daily_loss_limit_r"]
+            or len(closed_today) >= controls["daily_loss_limit_losses"]
             or consecutive_losses >= controls["max_consecutive_losses"]
         )
         if risk_locked:
@@ -657,7 +657,7 @@ def main():
             if row.get("status") != "LOSS":
                 break
             trailing_losses += 1
-        if len(day_losses) >= controls["daily_loss_limit_r"] or trailing_losses >= controls["max_consecutive_losses"]:
+        if len(day_losses) >= controls["daily_loss_limit_losses"] or trailing_losses >= controls["max_consecutive_losses"]:
             state["risk_pause_day"] = day_key
             state["risk_pause_reason"] = "تم بلوغ حد الخسائر؛ إيقاف الإشارات حتى يوم التداول التالي"
             if trade_to_publish is not None:
@@ -733,7 +733,8 @@ def main():
                 f"🎯 TP2: {num(trade_to_publish['take_profit_2'])}\n"
                 f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}\n"
                 f"⭐ جودة الإشارة: <b>{int(trade_to_publish.get('quality_score', data.get('quality_score', 0)))}/100</b> (تقييم فني وليس احتمال نجاح)\n"
-                f"{historical_success_rate(state)}"
+                f"{historical_success_rate(state)}\n"
+                "🛡️ إدارة المخاطر: لا تخاطر بأكثر من 1% من رأس المال في الصفقة الواحدة."
             )
             send_telegram(message)
 
@@ -748,6 +749,7 @@ def main():
                 or "تم تحقيق الهدف TP1" in event
                 or "تم ضرب وقف الخسارة" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
+                or "تم تفعيل حماية رأس المال" in event
             )
         ]
         for event in status_events:
