@@ -1,0 +1,8 @@
+{
+  "signals_paused": false,
+  "max_concurrent_trades": 3,
+  "min_quality_score": 65,
+  "max_consecutive_losses": 2,
+  "daily_loss_limit_r": 2,
+  "notes": "Controls are read by telegram_notifier.py. The concurrent trade cap is hard-limited to 3. Quality score is technical, not a statistical win probability. Loss locks pause new signals until the next Yemen calendar day."
+}
