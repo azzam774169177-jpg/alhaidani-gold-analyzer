@@ -11,6 +11,7 @@ on:
       - "analyzer.py"
       - "telegram_notifier.py"
       - "cancel_trade.json"
+      - "admin_controls.json"
 
 permissions:
   contents: write
