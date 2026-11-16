@@ -129,6 +129,24 @@ def structure_break(candles, direction):
     return {"confirmed": bool(broken), "level": round(level, 2) if level is not None else None}
 
 
+def detect_liquidity_sweep(candles):
+    """Detect a wick beyond a confirmed swing followed by a close back inside."""
+    prior = candles.iloc[:-1]
+    swing_high, swing_low = confirmed_swings(prior)
+    last = candles.iloc[-1]
+    close = float(last["Close"])
+    low = float(last["Low"])
+    high = float(last["High"])
+    bullish = swing_low is not None and low < swing_low and close > swing_low
+    bearish = swing_high is not None and high > swing_high and close < swing_high
+    return {
+        "bullish_sweep": bool(bullish), "bearish_sweep": bool(bearish),
+        "swept_low": round(swing_low, 2) if bullish else None,
+        "swept_high": round(swing_high, 2) if bearish else None,
+        "note": "رصد ذيل كاسر عاد وأغلق داخل البنية؛ إشارة مساعدة وليست إثباتاً لنية صانع السوق."
+    }
+
+
 def analyze():
     now = utc_now()
     raw = yf.download(
@@ -243,6 +261,30 @@ def analyze():
         "mode": "REVERSAL_CONFIRMED" if reversal_mode else "TREND_CONTINUATION",
         "break": structure if reversal_mode else structure_break(candles, candidate)
     }
+    liquidity = detect_liquidity_sweep(candles)
+    details["liquidity_sweep"] = liquidity
+    # Technical quality score, not a statistical probability of winning.
+    score_parts = {
+        "توافق الاتجاهات": 25 if normal_alignment else 20,
+        "زخم RSI": 20,
+        "عدم مطاردة السعر": 15,
+        "البنية السعرية": 15 if (not reversal_mode or structure["confirmed"]) else 5,
+        "المساحة إلى المستوى المقابل": 15,
+        "رصد سحب السيولة المتوافق": 10 if (
+            (candidate == "BUY" and liquidity["bullish_sweep"]) or
+            (candidate == "SELL" and liquidity["bearish_sweep"])
+        ) else 5
+    }
+    quality_score = min(100, sum(score_parts.values()))
+    details["quality_score"] = {
+        "score": quality_score, "components": score_parts,
+        "meaning": "درجة جودة فنية تقديرية من 100 وليست احتمال نجاح إحصائياً."
+    }
+    if quality_score < 65:
+        return wait_result(
+            f"جودة الإشارة {quality_score}/100 أقل من الحد الأدنى 65؛ تم منع نشرها.",
+            m15_info["candle_time"], details
+        )
     reason = (
         "تأكيد انعكاس مبكر: توافق H1 وM15 مع كسر بنية M15، "
         "وزخم ومسافة سعرية مقبولان."
@@ -260,6 +302,8 @@ def analyze():
         "atr_14": rounded(atr), "support_20": rounded(support),
         "resistance_20": rounded(resistance), "rsi14_m15": round(m15_rsi, 2),
         "ema20_extension_atr": round(extension_atr, 2),
+        "quality_score": quality_score, "quality_components": score_parts,
+        "liquidity_sweep": liquidity,
         "signal_mode": "REVERSAL_CONFIRMED" if reversal_mode else "TREND_CONTINUATION",
         "timeframes": details, "candle_time": candles.index[-1].isoformat(),
         "updated_utc": now.isoformat(), "execution_mode": "SIGNALS_ONLY",
