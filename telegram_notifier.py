@@ -197,6 +197,9 @@ def announce_upcoming_news(state, now):
             send_telegram(message)
             sent.append(event_key)
             sent_set.add(event_key)
+            state["announced_economic_events"] = sent[-500:]
+            # Persist immediately so a later signal/quote failure cannot resend this alert.
+            save_state(state)
             print(f"ECONOMIC_NEWS_SENT: {title} at {raw_date}")
         except Exception as exc:
             print(f"NEWS_EVENT_WARNING: {exc}")
@@ -461,6 +464,11 @@ def summarize(trades, start, end, title):
     )
 
 def main():
+    # Economic news alerts continue during maintenance; only trade publishing is paused.
+    state = load_state()
+    now = utc_now()
+    announce_upcoming_news(state, now)
+
     # Hard maintenance lock: prevent any manual or automatic run from publishing trades.
     try:
         with open("maintenance_notice.json", "r", encoding="utf-8") as maintenance_file:
@@ -468,12 +476,9 @@ def main():
     except FileNotFoundError:
         maintenance = {"signals_paused": False}
     if maintenance.get("signals_paused") is True:
-        print("MAINTENANCE: signal publishing is locked; no trade will be sent.")
+        print("MAINTENANCE: signal publishing is locked; news alerts remain enabled.")
+        save_state(state)
         return
-
-    state = load_state()
-    now = utc_now()
-    announce_upcoming_news(state, now)
     try:
         with open("signal.json", "r", encoding="utf-8") as signal_file:
             data = json.load(signal_file)
@@ -491,7 +496,7 @@ def main():
             quote_error = str(quote_exc)
         latest = bars[-1] if bars else None
         quote_age = (now.timestamp() - latest["ts"]) if latest else None
-        quote_stale = latest is None or quote_age > MAX_QUOTE_AGE_SECONDS
+        quote_stale = latest is None or quote_age > MAX_QUOTE_AGE_SECONDS or quote_age < -60
         events = []
         trade_to_publish = None
         if quote_stale:
@@ -535,8 +540,8 @@ def main():
         actionable_fresh = (
             signal in ("BUY", "SELL")
             and not quote_stale
-            and updated_age <= MAX_SIGNAL_AGE_SECONDS
-            and candle_age <= MAX_CANDLE_AGE_SECONDS
+            and -60 <= updated_age <= MAX_SIGNAL_AGE_SECONDS
+            and -60 <= candle_age <= MAX_CANDLE_AGE_SECONDS
         )
         if actionable_fresh and current_key != state.get("last_signal_key"):
             existing = any(t.get("signal_key") == current_key for t in active + closed)
