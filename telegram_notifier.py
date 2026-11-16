@@ -112,6 +112,26 @@ def send_telegram(message):
             raise RuntimeError(f"Telegram رفض الإرسال إلى {chat_id}: {result.get('description', 'سبب غير معروف')}")
     return True
 
+def load_admin_controls():
+    defaults = {
+        "signals_paused": False, "max_concurrent_trades": 3,
+        "min_quality_score": 65, "max_consecutive_losses": 2,
+        "daily_loss_limit_r": 2
+    }
+    try:
+        with open("admin_controls.json", "r", encoding="utf-8") as f:
+            supplied = json.load(f)
+        if isinstance(supplied, dict):
+            defaults.update(supplied)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    defaults["max_concurrent_trades"] = max(1, min(3, int(defaults["max_concurrent_trades"])))
+    defaults["min_quality_score"] = max(0, min(100, int(defaults["min_quality_score"])))
+    defaults["max_consecutive_losses"] = max(1, int(defaults["max_consecutive_losses"]))
+    defaults["daily_loss_limit_r"] = max(1, int(defaults["daily_loss_limit_r"]))
+    return defaults
+
+
 def load_state():
     try:
         with open(STATE_PATH, "r", encoding="utf-8") as f:
@@ -466,6 +486,7 @@ def summarize(trades, start, end, title):
 def main():
     # Economic news alerts continue during maintenance; only trade publishing is paused.
     state = load_state()
+    controls = load_admin_controls()
     now = utc_now()
     announce_upcoming_news(state, now)
 
@@ -475,7 +496,7 @@ def main():
             maintenance = json.load(maintenance_file)
     except FileNotFoundError:
         maintenance = {"signals_paused": False}
-    if maintenance.get("signals_paused") is True:
+    if maintenance.get("signals_paused") is True or controls.get("signals_paused") is True:
         print("MAINTENANCE: signal publishing is locked; news alerts remain enabled.")
         save_state(state)
         return
@@ -537,8 +558,37 @@ def main():
             print(f"Manual cancellation request processed; pending_cancelled={cancelled_count}")
 
         # Register only actionable setups backed by fresh signal, candle, and quote data.
+        day_key = now.astimezone(YEMEN).date().isoformat()
+        if state.get("risk_pause_day") != day_key:
+            state.pop("risk_pause_day", None)
+            state.pop("risk_pause_reason", None)
+        closed_today = [
+            t for t in closed
+            if t.get("status") == "LOSS" and t.get("closed_at")
+            and parse_time(t["closed_at"]).astimezone(YEMEN).date().isoformat() == day_key
+        ]
+        recent_decisive = sorted(
+            [t for t in closed if t.get("status") in ("LOSS", "WIN_TP3") and t.get("closed_at")],
+            key=lambda t: parse_time(t["closed_at"])
+        )
+        consecutive_losses = 0
+        for row in reversed(recent_decisive):
+            if row.get("status") != "LOSS":
+                break
+            consecutive_losses += 1
+        risk_locked = (
+            state.get("risk_pause_day") == day_key
+            or len(closed_today) >= controls["daily_loss_limit_r"]
+            or consecutive_losses >= controls["max_consecutive_losses"]
+        )
+        if risk_locked:
+            state["risk_pause_day"] = day_key
+            state["risk_pause_reason"] = "حد الخسائر اليومي أو الخسائر المتتالية"
         actionable_fresh = (
             signal in ("BUY", "SELL")
+            and not risk_locked
+            and isinstance(data.get("quality_score"), (int, float))
+            and data.get("quality_score", 0) >= controls["min_quality_score"]
             and not quote_stale
             and -60 <= updated_age <= MAX_SIGNAL_AGE_SECONDS
             and -60 <= candle_age <= MAX_CANDLE_AGE_SECONDS
@@ -549,8 +599,9 @@ def main():
                 t for t in active
                 if t.get("status") in ("PENDING", "OPEN", "ACTIVE")
             ]
-            # Hard cap: never register or publish more than three concurrent trades.
-            if not existing and len(live_trades) < 3:
+            # Admin may lower the cap, but it can never exceed three concurrent trades.
+            max_live = controls["max_concurrent_trades"]
+            if not existing and len(live_trades) < max_live:
                 trade = {
                     "signal_key": current_key, "side": signal,
                     "entry": float(data["entry"]), "stop_loss": float(data["stop_loss"]),
@@ -561,17 +612,18 @@ def main():
                     "highest_target": 0, "target_hit_times": {},
                     "last_checked_bar": latest["ts"] if latest and not quote_stale else int(now.timestamp())
                 }
+                trade["quality_score"] = int(data.get("quality_score", 0))
                 active.append(trade)
                 trade_to_publish = data
                 state["last_signal_key"] = current_key
-                print(f"NEW_TRADE_REGISTERED: concurrent={len(live_trades) + 1}/3")
+                print(f"NEW_TRADE_REGISTERED: concurrent={len(live_trades) + 1}/{max_live}; quality={trade['quality_score']}/100")
             elif existing:
                 state["last_signal_key"] = current_key
                 print("DUPLICATE_SIGNAL_IGNORED")
             else:
                 # Do not consume the signal key: retry on the next workflow run
                 # in case one of the three existing trades closes in the meantime.
-                print(f"TRADE_LIMIT_REACHED: concurrent={len(live_trades)}/3; new signal not published")
+                print(f"TRADE_LIMIT_REACHED: concurrent={len(live_trades)}/{max_live}; new signal not published")
         elif signal == "WAIT":
             state["last_signal_key"] = current_key
 
@@ -590,6 +642,33 @@ def main():
             else:
                 closed.append(trade)
         state["active_trades"] = still_open
+        # Enforce the capital-protection lock immediately after newly processed outcomes.
+        day_losses = [
+            t for t in state["closed_trades"] + state["active_trades"]
+            if t.get("status") == "LOSS" and t.get("closed_at")
+            and parse_time(t["closed_at"]).astimezone(YEMEN).date().isoformat() == day_key
+        ]
+        decisive_now = sorted(
+            [t for t in state["closed_trades"] if t.get("status") in ("LOSS", "WIN_TP3") and t.get("closed_at")],
+            key=lambda t: parse_time(t["closed_at"])
+        )
+        trailing_losses = 0
+        for row in reversed(decisive_now):
+            if row.get("status") != "LOSS":
+                break
+            trailing_losses += 1
+        if len(day_losses) >= controls["daily_loss_limit_r"] or trailing_losses >= controls["max_consecutive_losses"]:
+            state["risk_pause_day"] = day_key
+            state["risk_pause_reason"] = "تم بلوغ حد الخسائر؛ إيقاف الإشارات حتى يوم التداول التالي"
+            if trade_to_publish is not None:
+                for pending in list(state["active_trades"]):
+                    if pending.get("signal_key") == current_key and pending.get("status") == "PENDING":
+                        pending["status"] = "CANCELLED_RISK_LOCK"
+                        pending["closed_at"] = now.isoformat()
+                        state["active_trades"].remove(pending)
+                        state["closed_trades"].append(pending)
+                trade_to_publish = None
+                events.append("🛡️ <b>تم تفعيل حماية رأس المال:</b> إيقاف الإشارات بعد بلوغ حد الخسائر.")
         # Retain up to one year of closed history.
         cutoff = now - timedelta(days=370)
         state["closed_trades"] = [t for t in closed if not t.get("closed_at") or parse_time(t["closed_at"]) >= cutoff]
@@ -652,7 +731,9 @@ def main():
                 f"🛑 الاستوب: {num(trade_to_publish['stop_loss'])}\n"
                 f"🎯 TP1: {num(trade_to_publish['take_profit_1'])}\n"
                 f"🎯 TP2: {num(trade_to_publish['take_profit_2'])}\n"
-                f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}"
+                f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}\n"
+                f"⭐ جودة الإشارة: <b>{int(trade_to_publish.get('quality_score', data.get('quality_score', 0)))}/100</b> (تقييم فني وليس احتمال نجاح)\n"
+                f"{historical_success_rate(state)}"
             )
             send_telegram(message)
 
