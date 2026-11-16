@@ -377,8 +377,10 @@ def process_bar_for_trade(trade, bar, events):
             return
         trade["status"] = "ACTIVE"
         trade["activated_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
+        trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
             "<b>تم تفعيل الصفقة ✅</b>\n"
+            f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
             f"الاتجاه: {trade['side']} | الزوج: XAUUSD | الدخول: {num(entry)}"
         )
         # Do not infer TP/SL ordering from the same one-minute candle that
@@ -396,8 +398,10 @@ def process_bar_for_trade(trade, bar, events):
         trade["close_price"] = None
         trade["ambiguous"] = True
         trade["last_checked_bar"] = bar["ts"]
+        trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
             "⚠️ <b>نتيجة غير محسومة داخل شمعة واحدة</b>\n"
+            f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
             f"الصفقة {trade['side']} دخول {num(trade['entry'])}: الشمعة لمست وقف الخسارة وهدفاً واحداً أو أكثر، "
             "ولا يمكن معرفة أيهما حدث أولاً من بيانات OHLC؛ لم نحتسبها ربحاً أو خسارة."
         )
@@ -414,11 +418,14 @@ def process_bar_for_trade(trade, bar, events):
         trade["result_delta"] = favorable_distance(trade, trade["stop_loss"])
         trade["last_checked_bar"] = bar["ts"]
         stop_distance = abs(float(trade["stop_loss"]) - float(trade["entry"]))
-        stop_pips = int(round(stop_distance))
+        stop_points = int(round(stop_distance * 10))
+        stop_pips = stop_points * 10
+        trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
-            f"{outcome}\nالاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
+            f"{outcome}\n🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
+            f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
             f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/3\n"
-            f"🛑 Stop Loss: {stop_pips} Pips ❌"
+            f"فرق السعر: {num(stop_distance)} | 🛑 {stop_pips} Pips = {stop_points} Points ❌"
         )
         return
     # Multiple targets can be crossed in one candle; record every reached level.
@@ -434,15 +441,19 @@ def process_bar_for_trade(trade, bar, events):
         if idx == 1:
             points = int(round(distance * 10))
             pips = points * 10
+            trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
                 "🎯 <b>تم تحقيق الهدف TP1</b>\n"
+                f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
                 f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
                 f"فرق السعر من الدخول: {num(distance)}\n\n"
                 f"{pips} Pips = {points} Points ✅🔥"
             )
         else:
+            trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
                 f"🎯 <b>تم تحقيق الهدف TP{idx}</b>\n"
+                f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
                 f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
                 f"فرق السعر من الدخول: {num(distance)}"
             )
@@ -452,7 +463,12 @@ def process_bar_for_trade(trade, bar, events):
         trade["close_price"] = float(trade["targets"][2])
         trade["result_delta"] = favorable_distance(trade, trade["targets"][2])
         trade["last_checked_bar"] = bar["ts"]
-        events.append("🏆 <b>اكتملت الصفقة عند الهدف الثالث TP3.</b>")
+        trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
+        events.append(
+            "🏆 <b>اكتملت الصفقة عند الهدف الثالث TP3.</b>\n"
+            f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
+            f"صافي فرق السعر: +{num(trade['result_delta'])}"
+        )
     else:
         trade["last_checked_bar"] = bar["ts"]
 
@@ -548,8 +564,10 @@ def main():
                     trade["status"] = "CANCELLED"
                     trade["cancelled_at"] = now.isoformat()
                     trade["cancel_reason"] = str(cancel_request.get("reason") or "إلغاء يدوي من الإدارة")
+                    trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
                     events.append(
                         "🚫 <b>تم إلغاء الصفقة ❌</b>\\n"
+                        f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\\n"
                         f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])}\\n"
                         f"السبب: {cancel_reason}"
                     )
@@ -595,15 +613,19 @@ def main():
         )
         if actionable_fresh and current_key != state.get("last_signal_key"):
             existing = any(t.get("signal_key") == current_key for t in active + closed)
+            same_candle_setup = any(
+                t.get("side") == signal and t.get("candle_time") == data["candle_time"]
+                for t in active + closed
+            )
             live_trades = [
                 t for t in active
                 if t.get("status") in ("PENDING", "OPEN", "ACTIVE")
             ]
             # Admin may lower the cap, but it can never exceed three concurrent trades.
             max_live = controls["max_concurrent_trades"]
-            if not existing and len(live_trades) < max_live:
+            if not existing and not same_candle_setup and len(live_trades) < max_live:
                 trade = {
-                    "signal_key": current_key, "side": signal,
+                    "signal_key": current_key, "trade_id": current_key[:12], "side": signal,
                     "entry": float(data["entry"]), "stop_loss": float(data["stop_loss"]),
                     "targets": [float(data[k]) for k in LEVELS],
                     "signal_updated_utc": updated.isoformat(),
@@ -617,9 +639,9 @@ def main():
                 trade_to_publish = data
                 state["last_signal_key"] = current_key
                 print(f"NEW_TRADE_REGISTERED: concurrent={len(live_trades) + 1}/{max_live}; quality={trade['quality_score']}/100")
-            elif existing:
+            elif existing or same_candle_setup:
                 state["last_signal_key"] = current_key
-                print("DUPLICATE_SIGNAL_IGNORED")
+                print("DUPLICATE_SIGNAL_IGNORED: same signal or same-side setup on same candle")
             else:
                 # Do not consume the signal key: retry on the next workflow run
                 # in case one of the three existing trades closes in the meantime.
