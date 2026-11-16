@@ -331,8 +331,7 @@ def process_bar_for_trade(trade, bar, events):
         events.append(
             f"{outcome}\nالاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
             f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/3\n"
-            f"🛑 Stop Loss: {stop_pips} Pips ❌\n"
-            "لم نحسب صافي النقاط للنتيجة المختلطة لأن نسبة الإغلاق الجزئي غير محددة."
+            f"🛑 Stop Loss: {stop_pips} Pips ❌"
         )
         return
     # Multiple targets can be crossed in one candle; record every reached level.
