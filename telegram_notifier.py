@@ -549,7 +549,8 @@ def main():
         status_events = [
             event for event in events
             if (
-                "تم تحقيق الهدف TP1" in event
+                "تم تفعيل الصفقة" in event
+                or "تم تحقيق الهدف TP1" in event
                 or "تم ضرب وقف الخسارة" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
             )
