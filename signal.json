@@ -3,95 +3,42 @@
   "market_proxy": "GC=F",
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
-  "signal": "SELL",
-  "reason": "توافق H4 وH1 وM15 مع زخم غير مستنفد، وعدم ابتعاد مفرط عن EMA20.",
-  "price": 3868.9,
-  "entry": 3868.9,
-  "stop_loss": 3881.15,
-  "take_profit_1": 3856.65,
-  "take_profit_2": 3844.41,
-  "take_profit_3": 3832.16,
-  "atr_14": 6.46,
-  "support_20": 3854.2,
-  "resistance_20": 3880.5,
-  "rsi14_m15": 48.69,
-  "ema20_extension_atr": 0.22,
-  "quality_score": 80,
-  "quality_components": {
-    "توافق الاتجاهات": 30,
-    "زخم RSI": 10,
-    "عدم مطاردة السعر": 15,
-    "البنية السعرية": 10,
-    "المساحة إلى المستوى المقابل": 15,
-    "رصد سحب السيولة المتوافق": 0
-  },
-  "liquidity_sweep": {
-    "bullish_sweep": true,
-    "bearish_sweep": false,
-    "swept_low": 3865.9,
-    "swept_high": null,
-    "note": "رصد ذيل كاسر عاد وأغلق داخل البنية؛ إشارة مساعدة وليست إثباتاً لنية صانع السوق."
-  },
-  "signal_mode": "TREND_CONTINUATION",
+  "signal": "WAIT",
+  "reason": "الدعم قريب؛ المساحة المتاحة لا تبرر بيعاً جديداً.",
+  "price": 0,
+  "entry": null,
+  "stop_loss": null,
+  "take_profit_1": null,
+  "take_profit_2": null,
+  "take_profit_3": null,
+  "candle_time": "2026-11-16T16:00:00+00:00",
+  "updated_utc": "2026-11-16T16:26:52.392497+00:00",
+  "execution_mode": "SIGNALS_ONLY",
+  "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
   "timeframes": {
     "M15": {
       "trend": "SELL",
-      "price": 3868.89990234375,
-      "ema20": 3870.317157769039,
-      "ema50": 3871.240821742613,
-      "rsi14": 48.68753887443813,
-      "candle_time": "2026-11-16T14:15:00+00:00"
+      "price": 3861.699951171875,
+      "ema20": 3870.3610648559425,
+      "ema50": 3871.2607637042383,
+      "rsi14": 41.763475993537995,
+      "candle_time": "2026-11-16T16:00:00+00:00"
     },
     "H1": {
       "trend": "SELL",
-      "price": 3868.89990234375,
-      "ema20": 3874.8472092707448,
-      "ema50": 3901.280886963994,
-      "rsi14": 44.78304283335646,
-      "candle_time": "2026-11-16T14:00:00+00:00"
+      "price": 3861.89990234375,
+      "ema20": 3874.2132433121205,
+      "ema50": 3899.002539186762,
+      "rsi14": 42.998229362045045,
+      "candle_time": "2026-11-16T16:00:00+00:00"
     },
     "H4": {
       "trend": "SELL",
-      "price": 3877.39990234375,
-      "ema20": 3924.7982575072756,
-      "ema50": 3980.4866126145057,
-      "rsi14": 36.27421859527475,
-      "candle_time": "2026-11-16T12:00:00+00:00"
-    },
-    "anti_chase": {
-      "extension_atr": 0.22,
-      "maximum_allowed_atr": 1.25,
-      "status": "PASSED"
-    },
-    "structure": {
-      "mode": "TREND_CONTINUATION",
-      "break": {
-        "confirmed": false,
-        "level": 3865.9
-      }
-    },
-    "liquidity_sweep": {
-      "bullish_sweep": true,
-      "bearish_sweep": false,
-      "swept_low": 3865.9,
-      "swept_high": null,
-      "note": "رصد ذيل كاسر عاد وأغلق داخل البنية؛ إشارة مساعدة وليست إثباتاً لنية صانع السوق."
-    },
-    "quality_score": {
-      "score": 80,
-      "components": {
-        "توافق الاتجاهات": 30,
-        "زخم RSI": 10,
-        "عدم مطاردة السعر": 15,
-        "البنية السعرية": 10,
-        "المساحة إلى المستوى المقابل": 15,
-        "رصد سحب السيولة المتوافق": 0
-      },
-      "meaning": "درجة جودة فنية تقديرية من 100 وليست احتمال نجاح إحصائياً."
+      "price": 3861.89990234375,
+      "ema20": 3918.807937967892,
+      "ema50": 3975.8361533882016,
+      "rsi14": 34.098990668702385,
+      "candle_time": "2026-11-16T16:00:00+00:00"
     }
-  },
-  "candle_time": "2026-11-16T14:15:00+00:00",
-  "updated_utc": "2026-11-16T14:41:03.150435+00:00",
-  "execution_mode": "SIGNALS_ONLY",
-  "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. GC=F سعر عقود COMEX استرشادي وقد يختلف عن XAUUSD لدى وسيطك؛ تحقق من السعر وإدارة المخاطر."
+  }
 }
