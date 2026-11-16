@@ -545,7 +545,12 @@ def main():
         )
         if actionable_fresh and current_key != state.get("last_signal_key"):
             existing = any(t.get("signal_key") == current_key for t in active + closed)
-            if not existing:
+            live_trades = [
+                t for t in active
+                if t.get("status") in ("PENDING", "OPEN", "ACTIVE")
+            ]
+            # Hard cap: never register or publish more than three concurrent trades.
+            if not existing and len(live_trades) < 3:
                 trade = {
                     "signal_key": current_key, "side": signal,
                     "entry": float(data["entry"]), "stop_loss": float(data["stop_loss"]),
@@ -558,7 +563,15 @@ def main():
                 }
                 active.append(trade)
                 trade_to_publish = data
-            state["last_signal_key"] = current_key
+                state["last_signal_key"] = current_key
+                print(f"NEW_TRADE_REGISTERED: concurrent={len(live_trades) + 1}/3")
+            elif existing:
+                state["last_signal_key"] = current_key
+                print("DUPLICATE_SIGNAL_IGNORED")
+            else:
+                # Do not consume the signal key: retry on the next workflow run
+                # in case one of the three existing trades closes in the meantime.
+                print(f"TRADE_LIMIT_REACHED: concurrent={len(live_trades)}/3; new signal not published")
         elif signal == "WAIT":
             state["last_signal_key"] = current_key
 
