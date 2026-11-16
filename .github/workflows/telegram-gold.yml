@@ -9,6 +9,7 @@ on:
       - "maintenance_notice.json"
       - "manual_quote.json"
       - "analyzer.py"
+      - "telegram_notifier.py"
       - "cancel_trade.json"
 
 permissions:
