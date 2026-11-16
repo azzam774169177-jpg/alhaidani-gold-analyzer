@@ -139,6 +139,70 @@ def fetch_json(url, label):
             raise RuntimeError(f"{label}: HTTP {response.status}")
         return json.loads(response.read().decode("utf-8"))
 
+def fetch_economic_calendar():
+    """Fetch Forex Factory's public weekly calendar (timestamps are UTC)."""
+    url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+    payload = fetch_json(url, "التقويم الاقتصادي Forex Factory")
+    if not isinstance(payload, list):
+        raise RuntimeError("صيغة التقويم الاقتصادي غير متوقعة")
+    return payload
+
+
+def announce_upcoming_news(state, now):
+    """Announce high-impact USD news roughly 15 minutes before release."""
+    try:
+        calendar = fetch_economic_calendar()
+    except Exception as exc:
+        print(f"NEWS_CALENDAR_WARNING: {exc}")
+        return
+
+    sent = state.setdefault("announced_economic_events", [])
+    sent_set = set(sent)
+    for item in calendar:
+        try:
+            currency = str(item.get("country", "")).upper()
+            impact = str(item.get("impact", "")).strip().lower()
+            title = str(item.get("title", "")).strip()
+            raw_date = item.get("date")
+            if currency != "USD" or impact != "high" or not title or not raw_date:
+                continue
+            event_time = parse_time(raw_date)
+            minutes_until = (event_time - now).total_seconds() / 60
+            # Five-minute workflow cadence: announce once in the 10–16 min window.
+            if not (10 <= minutes_until <= 16):
+                continue
+            event_key = hashlib.sha256(
+                f"{raw_date}|{currency}|{title}".encode("utf-8")
+            ).hexdigest()
+            if event_key in sent_set:
+                continue
+
+            local_time = event_time.astimezone(YEMEN).strftime("%H:%M")
+            local_date = event_time.astimezone(YEMEN).strftime("%Y-%m-%d")
+            forecast = str(item.get("forecast") or "غير متوفر")
+            previous = str(item.get("previous") or "غير متوفر")
+            message = (
+                "🚨 <b>أسطورة المجال | خبر اقتصادي مهم بعد قليل</b>\n\n"
+                f"📰 الخبر: <b>{html.escape(title)}</b>\n"
+                f"💵 العملة: <b>{currency}</b>\n"
+                "🔴 التأثير: <b>قوي</b>\n"
+                f"⏰ الموعد: <b>{local_time} بتوقيت اليمن</b>\n"
+                f"📅 التاريخ: <b>{local_date}</b>\n"
+                f"📊 التوقع: {html.escape(forecast)}\n"
+                f"📌 السابق: {html.escape(previous)}\n\n"
+                "🥇 قد يسبب الخبر تذبذبًا قويًا في الذهب XAUUSD.\n"
+                "⚠️ راقب حركة السعر ولا تدخل عشوائيًا وقت صدور الخبر.\n"
+                "المصدر: Forex Factory"
+            )
+            send_telegram(message)
+            sent.append(event_key)
+            sent_set.add(event_key)
+            print(f"ECONOMIC_NEWS_SENT: {title} at {raw_date}")
+        except Exception as exc:
+            print(f"NEWS_EVENT_WARNING: {exc}")
+    state["announced_economic_events"] = sent[-500:]
+
+
 def fetch_quote_bars():
     payload = fetch_json(QUOTE_URL, "مصدر الذهب GC=F (عقود COMEX الاسترشادية من Yahoo Finance)")
     result = payload.get("chart", {}).get("result")
@@ -409,6 +473,7 @@ def main():
 
     state = load_state()
     now = utc_now()
+    announce_upcoming_news(state, now)
     try:
         with open("signal.json", "r", encoding="utf-8") as signal_file:
             data = json.load(signal_file)
