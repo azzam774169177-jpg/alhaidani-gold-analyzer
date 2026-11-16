@@ -342,11 +342,21 @@ def process_bar_for_trade(trade, bar, events):
         trade["target_hit_times"][str(idx)] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         target_price = trade["targets"][idx - 1]
         distance = abs(float(target_price) - float(trade["entry"]))
-        events.append(
-            f"🎯 <b>تم تحقيق الهدف TP{idx}</b>\n"
-            f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
-            f"فرق السعر من الدخول: {num(distance)}"
-        )
+        if idx == 1:
+            points = int(round(distance * 10))
+            pips = points * 10
+            events.append(
+                "🎯 <b>تم تحقيق الهدف TP1</b>\n"
+                f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
+                f"فرق السعر من الدخول: {num(distance)}\n\n"
+                f"{pips} Pips = {points} Points ✅🔥"
+            )
+        else:
+            events.append(
+                f"🎯 <b>تم تحقيق الهدف TP{idx}</b>\n"
+                f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
+                f"فرق السعر من الدخول: {num(distance)}"
+            )
     if trade.get("highest_target", 0) == 3:
         trade["status"] = "WIN_TP3"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
@@ -543,7 +553,7 @@ def main():
             )
         ]
         for event in status_events:
-            send_telegram("👑 <b>أسطورة المجال | تحديث الصفقة</b>\n\n" + event)
+            send_telegram(event)
 
         state["last_error"] = None
         save_state(state)
