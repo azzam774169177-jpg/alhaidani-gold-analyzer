@@ -1,6 +1,6 @@
 {
   "last_signal_key": "30733a2a50a69c55ef9f3f5b13295f773d73a4e8a5297a78400680ecd0ac1260",
-  "last_bar_ts": 1794818010,
+  "last_bar_ts": 1794818052,
   "active_trades": [
     {
       "signal_key": "21dcab4315c5599244af7e5cb21b303a83f7d57812dcae68b108e88b8bc908b5",
@@ -21,7 +21,7 @@
         "1": "2026-11-16T05:46:00+00:00",
         "2": "2026-11-16T05:50:00+00:00"
       },
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T03:07:00+00:00"
     },
     {
@@ -40,7 +40,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T06:55:00+00:00"
     },
     {
@@ -59,7 +59,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T06:53:00+00:00"
     },
     {
@@ -78,7 +78,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T06:55:00+00:00"
     },
     {
@@ -97,7 +97,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T07:17:00+00:00"
     },
     {
@@ -116,7 +116,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T07:28:00+00:00"
     },
     {
@@ -135,7 +135,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T07:39:00+00:00"
     },
     {
@@ -154,7 +154,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794818010,
+      "last_checked_bar": 1794818052,
       "activated_at": "2026-11-16T07:41:00+00:00"
     }
   ],
