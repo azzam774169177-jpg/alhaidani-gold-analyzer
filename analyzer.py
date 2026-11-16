@@ -264,16 +264,19 @@ def analyze():
     liquidity = detect_liquidity_sweep(candles)
     details["liquidity_sweep"] = liquidity
     # Technical quality score, not a statistical probability of winning.
+    aligned_sweep = (
+        (candidate == "BUY" and liquidity["bullish_sweep"]) or
+        (candidate == "SELL" and liquidity["bearish_sweep"])
+    )
+    current_structure = structure if reversal_mode else structure_break(candles, candidate)
+    rsi_centered = (54 <= m15_rsi <= 64) if candidate == "BUY" else (36 <= m15_rsi <= 46)
     score_parts = {
-        "توافق الاتجاهات": 25 if normal_alignment else 20,
-        "زخم RSI": 20,
-        "عدم مطاردة السعر": 15,
-        "البنية السعرية": 15 if (not reversal_mode or structure["confirmed"]) else 5,
-        "المساحة إلى المستوى المقابل": 15,
-        "رصد سحب السيولة المتوافق": 10 if (
-            (candidate == "BUY" and liquidity["bullish_sweep"]) or
-            (candidate == "SELL" and liquidity["bearish_sweep"])
-        ) else 5
+        "توافق الاتجاهات": 30 if normal_alignment else 20,
+        "زخم RSI": 15 if rsi_centered else 10,
+        "عدم مطاردة السعر": 15 if extension_atr <= 0.8 else 10,
+        "البنية السعرية": 15 if current_structure["confirmed"] else 10,
+        "المساحة إلى المستوى المقابل": 15 if room >= 1.5 * atr else (10 if room >= atr else 5),
+        "رصد سحب السيولة المتوافق": 10 if aligned_sweep else 0
     }
     quality_score = min(100, sum(score_parts.values()))
     details["quality_score"] = {
