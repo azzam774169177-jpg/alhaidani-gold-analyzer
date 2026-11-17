@@ -532,7 +532,7 @@ def process_bar_for_trade(trade, bar, events):
             pips = points * 10
             trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
-                "🎯 <b>تم تحقيق الهدف TP1</b>\n"
+                "🎯 <b>تم هدفك بنجاح</b>\n"
                 f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
                 f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
                 f"فرق السعر من الدخول: {num(distance)}\n\n"
@@ -848,7 +848,7 @@ def main():
             if (
                 "تم تفعيل الصفقة" in event
                 or "تم إلغاء الصفقة" in event
-                or "تم تحقيق الهدف TP1" in event
+                or "تم هدفك بنجاح" in event
                 or "تم ضرب وقف الخسارة" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
                 or "تم تفعيل حماية رأس المال" in event
