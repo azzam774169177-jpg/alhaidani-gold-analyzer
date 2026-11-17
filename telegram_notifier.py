@@ -814,6 +814,7 @@ def main():
             state["last_monthly_key"] = month_key
 
         # Only send actionable trade setups. All non-trade chatter is suppressed.
+        messages_sent = 0
         if trade_to_publish is not None:
             side = "شراء" if signal == "BUY" else "بيع"
             icon = "🟢" if signal == "BUY" else "🔴"
@@ -829,6 +830,8 @@ def main():
                 "🛡️ إدارة المخاطر: لا تخاطر بأكثر من 1% من رأس المال في الصفقة الواحدة."
             )
             send_telegram(message)
+            messages_sent += 1
+            print(f"TRADE_PUBLISHED: {signal} XAUUSD entry={published_trade['entry']} target={published_trade['targets'][0]} stop={published_trade['stop_loss']}")
 
         # Publish one-time trade outcome alerts. The monitor emits these events
         # only while processing previously unseen one-minute bars; state is
@@ -846,12 +849,23 @@ def main():
         ]
         for event in status_events:
             send_telegram(event)
+            messages_sent += 1
+
+        if signal in ("BUY", "SELL") and trade_to_publish is None:
+            blockers = []
+            if risk_locked: blockers.append("daily_net_loss_limit")
+            if quote_stale: blockers.append("quote_stale")
+            if not ( -60 <= updated_age <= MAX_SIGNAL_AGE_SECONDS): blockers.append("signal_stale")
+            if not (-60 <= candle_age <= MAX_CANDLE_AGE_SECONDS): blockers.append("candle_stale")
+            if not isinstance(data.get("quality_score"), (int, float)) or data.get("quality_score", 0) < controls["min_quality_score"]: blockers.append("quality_below_minimum")
+            if not blockers: blockers.append("duplicate_or_concurrent_trade_limit")
+            print("TRADE_NOT_PUBLISHED: " + ",".join(blockers))
 
         state["last_error"] = None
         save_state(state)
         quote_label = num(latest["close"]) if latest else "unavailable"
         quote_age_label = f"{int(quote_age)}s" if quote_age is not None else "unavailable"
-        print(f"OK quote={quote_label} quote_age={quote_age_label} bars={len(new_bars)} active={len(state['active_trades'])} closed={len(state['closed_trades'])} messages={len(events)}")
+        print(f"OK quote={quote_label} quote_age={quote_age_label} bars={len(new_bars)} active={len(state['active_trades'])} closed={len(state['closed_trades'])} messages_sent={messages_sent} status_events={len(status_events)}")
     except Exception as exc:
         # Errors stay in GitHub Actions logs; never send non-trade messages.
         print(f"ERROR: {exc}", file=sys.stderr)
