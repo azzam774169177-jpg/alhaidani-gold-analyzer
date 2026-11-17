@@ -403,9 +403,10 @@ def historical_success_rate(state):
     rows = [t for t in state.get("closed_trades", []) if t.get("status") in ("WIN_TP1", "WIN_TP3", "LOSS")]
     wins = sum(1 for t in rows if t.get("status") in ("WIN_TP1", "WIN_TP3"))
     total = len(rows)
-    if total < 20:
-        return f"📊 نسبة النجاح التاريخية: قيد التجميع ({wins} نجاح من {total} صفقة محسومة؛ يلزم 20 صفقة على الأقل)"
-    return f"📊 نسبة النجاح التاريخية: {wins / total * 100:.1f}% ({wins} من {total} صفقة محسومة)"
+    if total == 0:
+        return "نسبة النجاح التاريخية: غير متاحة (لا توجد صفقات محسومة)"
+    rate = wins / total * 100
+    return f"نسبة نجاح الصفقات التاريخية: {rate:.1f}% ({wins} من {total})"
 
 
 def ready_trade_message(data, signal, state):
@@ -819,16 +820,22 @@ def main():
             side = "شراء" if signal == "BUY" else "بيع"
             icon = "🟢" if signal == "BUY" else "🔴"
             published_trade = next((t for t in state["active_trades"] if t.get("signal_key") == current_key), None)
-            message = (
-                "👑 أسطورة المجال | صفقة ذهب\n\n"
-                f"{icon} {side} XAUUSD\n"
-                f"💰 الدخول: {num(published_trade['entry'])}\n"
-                f"🛑 الاستوب: {num(published_trade['stop_loss'])} (-{num(controls['trade_stop_points'])} نقاط)\n"
-                f"🎯 الهدف الوحيد TP1: {num(published_trade['targets'][0])} (+{num(controls['trade_target_points'])} نقاط)\n"
-                f"⭐ جودة الإشارة: <b>{int(trade_to_publish.get('quality_score', data.get('quality_score', 0)))}/100</b> (تقييم فني وليس احتمال نجاح)\n"
-                f"{historical_success_rate(state)}\n"
-                "🛡️ إدارة المخاطر: لا تخاطر بأكثر من 1% من رأس المال في الصفقة الواحدة."
-            )
+            if signal == "SELL":
+                message = (
+                    "صفقة بيع الذهب XAUUSD🥇\n"
+                    f"🔴 الدخول: {num(published_trade['entry'])}\n"
+                    f"🎯 هدفك: {num(published_trade['targets'][0])}\n"
+                    f"🛑 استوبك: {num(published_trade['stop_loss'])}\n\n"
+                    f"{historical_success_rate(state)}"
+                )
+            else:
+                message = (
+                    "🟢 صفقة شراء الذهب XAUUSD🥇\n"
+                    f"🟢 الدخول: {num(published_trade['entry'])}\n"
+                    f"🎯 هدفك: {num(published_trade['targets'][0])}\n"
+                    f"🛑 استوبك: {num(published_trade['stop_loss'])}\n\n"
+                    f"{historical_success_rate(state)}"
+                )
             send_telegram(message)
             messages_sent += 1
             print(f"TRADE_PUBLISHED: {signal} XAUUSD entry={published_trade['entry']} target={published_trade['targets'][0]} stop={published_trade['stop_loss']}")
