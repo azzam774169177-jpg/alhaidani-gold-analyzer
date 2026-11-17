@@ -591,7 +591,8 @@ def main():
     state = load_state()
     controls = load_admin_controls()
     now = utc_now()
-    announce_daily_news_summary(state, now)\n    announce_upcoming_news(state, now)
+    announce_daily_news_summary(state, now)
+    announce_upcoming_news(state, now)
 
     # Hard maintenance lock: prevent any manual or automatic run from publishing trades.
     try:
