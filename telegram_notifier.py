@@ -371,7 +371,8 @@ def favorable_distance(trade, level):
 
 def trade_summary_line(trade):
     side = "شراء" if trade["side"] == "BUY" else "بيع"
-    return f"{side} | دخول {num(trade['entry'])} | أفضل هدف {trade.get('highest_target', 0)}/3 | الحالة: {html.escape(trade['status'])}"
+    target_count = int(trade.get("target_count", 3))
+    return f"{side} | دخول {num(trade['entry'])} | أفضل هدف {trade.get('highest_target', 0)}/{target_count} | الحالة: {html.escape(trade['status'])}"
 
 def process_bar_for_trade(trade, bar, events):
     status = trade.get("status")
@@ -439,7 +440,7 @@ def process_bar_for_trade(trade, bar, events):
         events.append(
             f"{outcome}\n🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
             f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
-            f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/3\n"
+            f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/{trade.get('target_count', 3)}\n"
             f"فرق السعر: {num(stop_distance)} | 🛑 {stop_pips} Pips = {stop_points} Points ❌"
         )
         return
@@ -475,8 +476,9 @@ def process_bar_for_trade(trade, bar, events):
     if trade.get("highest_target", 0) >= target_count:
         trade["status"] = "WIN_TP1" if target_count == 1 else "WIN_TP3"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
-        trade["close_price"] = float(trade["targets"][2])
-        trade["result_delta"] = favorable_distance(trade, trade["targets"][2])
+        final_target = float(trade["targets"][target_count - 1])
+        trade["close_price"] = final_target
+        trade["result_delta"] = favorable_distance(trade, final_target)
         trade["last_checked_bar"] = bar["ts"]
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         target_label = "TP1" if target_count == 1 else "TP3"
@@ -510,7 +512,7 @@ def summarize(trades, start, end, title):
         f"🟠 هدف ثم استوب (مختلطة): {mixed}\n"
         f"⚠️ غير محسومة داخل شمعة: {ambiguous}\n"
         f"⏳ صفقات مفتوحة حالياً: {open_count}\n"
-        f"نسبة النجاح بين صفقات TP3 والخسارة المباشرة: {rate:.1f}%\n"
+        f"نسبة النجاح بين الصفقات الرابحة والخاسرة المباشرة: {rate:.1f}%\n"
         f"فرق السعر للصفقات المحسومة فقط (دولار/أونصة): +{gross_up:.2f} / {gross_down:.2f} / الصافي {net_delta:+.2f}\n"
         "ملاحظة: نقطة الذهب هنا = 1.00 في فرق السعر (10 Pips)، والصفقات المختلطة والملتبسة لا تدخل في صافي النقاط المحسوم."
     )
