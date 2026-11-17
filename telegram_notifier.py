@@ -115,8 +115,8 @@ def send_telegram(message):
 def load_admin_controls():
     defaults = {
         "signals_paused": False, "max_concurrent_trades": 3,
-        "min_quality_score": 65, "max_consecutive_losses": 2,
-        "daily_loss_limit_losses": 2
+        "min_quality_score": 65, "trade_target_points": 10.0,
+        "trade_stop_points": 10.0, "daily_net_loss_limit_points": 50.0
     }
     try:
         with open("admin_controls.json", "r", encoding="utf-8") as f:
@@ -127,8 +127,9 @@ def load_admin_controls():
         pass
     defaults["max_concurrent_trades"] = max(1, min(3, int(defaults["max_concurrent_trades"])))
     defaults["min_quality_score"] = max(0, min(100, int(defaults["min_quality_score"])))
-    defaults["max_consecutive_losses"] = max(1, int(defaults["max_consecutive_losses"]))
-    defaults["daily_loss_limit_losses"] = max(1, int(defaults["daily_loss_limit_losses"]))
+    defaults["trade_target_points"] = max(0.1, min(100.0, float(defaults["trade_target_points"])))
+    defaults["trade_stop_points"] = max(0.1, min(100.0, float(defaults["trade_stop_points"])))
+    defaults["daily_net_loss_limit_points"] = max(1.0, min(10000.0, float(defaults["daily_net_loss_limit_points"])))
     return defaults
 
 
@@ -146,6 +147,21 @@ def load_state():
         "last_weekly_key": None, "last_monthly_key": None,
         "last_error": None, "last_quote_warning": None
     }
+
+def daily_net_points(trades, day_key):
+    """Net closed P/L in gold points; 1.00 price movement equals 1 point (10 pips)."""
+    total = 0.0
+    for trade in trades:
+        closed_at = trade.get("closed_at")
+        result = trade.get("result_delta")
+        if not closed_at or not isinstance(result, (int, float)):
+            continue
+        if trade.get("status") not in ("WIN_TP1", "WIN_TP3", "LOSS"):
+            continue
+        if parse_time(closed_at).astimezone(YEMEN).date().isoformat() == day_key:
+            total += float(result)
+    return round(total, 2)
+
 
 def save_state(state):
     with open(STATE_PATH, "w", encoding="utf-8") as f:
@@ -312,8 +328,8 @@ def signal_message(data, signal, updated, candle, now, quote, updated_age, candl
     return msg
 
 def historical_success_rate(state):
-    rows = [t for t in state.get("closed_trades", []) if t.get("status") in ("WIN_TP3", "LOSS")]
-    wins = sum(1 for t in rows if t.get("status") == "WIN_TP3")
+    rows = [t for t in state.get("closed_trades", []) if t.get("status") in ("WIN_TP1", "WIN_TP3", "LOSS")]
+    wins = sum(1 for t in rows if t.get("status") in ("WIN_TP1", "WIN_TP3"))
     total = len(rows)
     if total < 20:
         return f"📊 نسبة النجاح التاريخية: قيد التجميع ({wins} نجاح من {total} صفقة محسومة؛ يلزم 20 صفقة على الأقل)"
@@ -327,10 +343,8 @@ def ready_trade_message(data, signal, state):
         "🥇 الزوج: <b>XAUUSD</b>\n"
         f"📌 الاتجاه: <b>{side}</b>\n"
         f"💰 سعر الدخول: <code>{num(data['entry'])}</code>\n"
-        f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code>\n"
-        f"🎯 الهدف الأول: <code>{num(data['take_profit_1'])}</code>\n"
-        f"🎯 الهدف الثاني: <code>{num(data['take_profit_2'])}</code>\n"
-        f"🎯 الهدف الثالث: <code>{num(data['take_profit_3'])}</code>\n\n"
+        f"🛑 وقف الخسارة: <code>{num(data['stop_loss'])}</code> (10 نقاط)\n"
+        f"🎯 الهدف الوحيد TP1: <code>{num(data['take_profit_1'])}</code> (10 نقاط)\n\n"
         f"{historical_success_rate(state)}\n"
         f"🕯 الإطار: {html.escape(str(data.get('timeframe', '15m')))}\n"
         f"📝 السبب الفني: {html.escape(str(data.get('reason', 'توافق فني')))}\n"
@@ -388,9 +402,10 @@ def process_bar_for_trade(trade, bar, events):
         return
 
     next_idx = int(trade.get("highest_target", 0))
+    target_count = max(1, min(3, int(trade.get("target_count", 3))))
     # If this one-minute candle touches the stop and any remaining target,
     # OHLC data cannot establish which price happened first: classify as ambiguous.
-    any_target = any(target_hit(trade, bar, i) for i in range(next_idx, 3))
+    any_target = any(target_hit(trade, bar, i) for i in range(next_idx, target_count))
     stopped = stop_hit(trade, bar)
     if stopped and any_target:
         trade["status"] = "AMBIGUOUS_SL_AND_TP_SAME_CANDLE"
@@ -418,7 +433,7 @@ def process_bar_for_trade(trade, bar, events):
         trade["result_delta"] = favorable_distance(trade, trade["stop_loss"])
         trade["last_checked_bar"] = bar["ts"]
         stop_distance = abs(float(trade["stop_loss"]) - float(trade["entry"]))
-        stop_points = int(round(stop_distance * 10))
+        stop_points = stop_distance
         stop_pips = stop_points * 10
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
@@ -429,7 +444,7 @@ def process_bar_for_trade(trade, bar, events):
         )
         return
     # Multiple targets can be crossed in one candle; record every reached level.
-    while trade.get("highest_target", 0) < 3:
+    while trade.get("highest_target", 0) < target_count:
         idx = int(trade.get("highest_target", 0))
         if not target_hit(trade, bar, idx):
             break
@@ -439,7 +454,7 @@ def process_bar_for_trade(trade, bar, events):
         target_price = trade["targets"][idx - 1]
         distance = abs(float(target_price) - float(trade["entry"]))
         if idx == 1:
-            points = int(round(distance * 10))
+            points = distance
             pips = points * 10
             trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
@@ -457,24 +472,25 @@ def process_bar_for_trade(trade, bar, events):
                 f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
                 f"فرق السعر من الدخول: {num(distance)}"
             )
-    if trade.get("highest_target", 0) == 3:
-        trade["status"] = "WIN_TP3"
+    if trade.get("highest_target", 0) >= target_count:
+        trade["status"] = "WIN_TP1" if target_count == 1 else "WIN_TP3"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = float(trade["targets"][2])
         trade["result_delta"] = favorable_distance(trade, trade["targets"][2])
         trade["last_checked_bar"] = bar["ts"]
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
+        target_label = "TP1" if target_count == 1 else "TP3"
         events.append(
-            "🏆 <b>اكتملت الصفقة عند الهدف الثالث TP3.</b>\n"
+            f"🏆 <b>اكتملت الصفقة عند الهدف {target_label}.</b>\n"
             f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-            f"صافي فرق السعر: +{num(trade['result_delta'])}"
+            f"صافي النتيجة: +{num(trade['result_delta'])} نقطة"
         )
     else:
         trade["last_checked_bar"] = bar["ts"]
 
 def summarize(trades, start, end, title):
     rows = [t for t in trades if t.get("closed_at") and start <= parse_time(t["closed_at"]) < end]
-    wins = sum(1 for t in rows if t["status"] == "WIN_TP3")
+    wins = sum(1 for t in rows if t["status"] in ("WIN_TP1", "WIN_TP3"))
     losses = sum(1 for t in rows if t["status"] == "LOSS")
     mixed = sum(1 for t in rows if t["status"] == "MIXED_AFTER_TARGET")
     ambiguous = sum(1 for t in rows if t["status"] == "AMBIGUOUS_SL_AND_TP_SAME_CANDLE")
@@ -482,21 +498,21 @@ def summarize(trades, start, end, title):
     total = len(rows)
     decided = wins + losses
     rate = (wins / decided * 100) if decided else 0
-    completed = [t for t in rows if t.get("status") in ("WIN_TP3", "LOSS") and isinstance(t.get("result_delta"), (int, float))]
+    completed = [t for t in rows if t.get("status") in ("WIN_TP1", "WIN_TP3", "LOSS") and isinstance(t.get("result_delta"), (int, float))]
     gross_up = sum(max(0.0, float(t["result_delta"])) for t in completed)
     gross_down = sum(min(0.0, float(t["result_delta"])) for t in completed)
     net_delta = gross_up + gross_down
     return (
         f"📊 <b>{title}</b>\n"
         f"إجمالي الصفقات المغلقة: {total}\n"
-        f"🟢 مكتملة TP3: {wins}\n"
-        f"🔴 خسارة قبل الأهداف: {losses}\n"
+        f"🟢 صفقات رابحة بهدف واحد: {wins}\n"
+        f"🔴 صفقات خاسرة: {losses}\n"
         f"🟠 هدف ثم استوب (مختلطة): {mixed}\n"
         f"⚠️ غير محسومة داخل شمعة: {ambiguous}\n"
         f"⏳ صفقات مفتوحة حالياً: {open_count}\n"
         f"نسبة النجاح بين صفقات TP3 والخسارة المباشرة: {rate:.1f}%\n"
         f"فرق السعر للصفقات المحسومة فقط (دولار/أونصة): +{gross_up:.2f} / {gross_down:.2f} / الصافي {net_delta:+.2f}\n"
-        "ملاحظة: هذا فرق سعري بالدولار لكل أونصة على XAUUSD=X وليس نقاط وسيطك؛ لا يُحسب صافي الصفقة المختلطة دون تحديد نسب الإغلاق الجزئي."
+        "ملاحظة: نقطة الذهب هنا = 1.00 في فرق السعر (10 Pips)، والصفقات المختلطة والملتبسة لا تدخل في صافي النقاط المحسوم."
     )
 
 def main():
@@ -580,28 +596,15 @@ def main():
         if state.get("risk_pause_day") != day_key:
             state.pop("risk_pause_day", None)
             state.pop("risk_pause_reason", None)
-        closed_today = [
-            t for t in closed
-            if t.get("status") == "LOSS" and t.get("closed_at")
-            and parse_time(t["closed_at"]).astimezone(YEMEN).date().isoformat() == day_key
-        ]
-        recent_decisive = sorted(
-            [t for t in closed if t.get("status") in ("LOSS", "WIN_TP3") and t.get("closed_at")],
-            key=lambda t: parse_time(t["closed_at"])
-        )
-        consecutive_losses = 0
-        for row in reversed(recent_decisive):
-            if row.get("status") != "LOSS":
-                break
-            consecutive_losses += 1
-        risk_locked = (
-            state.get("risk_pause_day") == day_key
-            or len(closed_today) >= controls["daily_loss_limit_losses"]
-            or consecutive_losses >= controls["max_consecutive_losses"]
-        )
+        # Recalculate the lock from today's NET points; old loss-count locks are retired.
+        state.pop("risk_pause_day", None)
+        state.pop("risk_pause_reason", None)
+        current_daily_net = daily_net_points(closed, day_key)
+        daily_limit = float(controls["daily_net_loss_limit_points"])
+        risk_locked = current_daily_net <= -daily_limit
         if risk_locked:
             state["risk_pause_day"] = day_key
-            state["risk_pause_reason"] = "حد الخسائر اليومي أو الخسائر المتتالية"
+            state["risk_pause_reason"] = f"صافي خسارة اليوم {current_daily_net:.2f} نقطة بلغ الحد -{daily_limit:.2f}"
         actionable_fresh = (
             signal in ("BUY", "SELL")
             and not risk_locked
@@ -626,8 +629,10 @@ def main():
             if not existing and not same_candle_setup and len(live_trades) < max_live:
                 trade = {
                     "signal_key": current_key, "trade_id": current_key[:12], "side": signal,
-                    "entry": float(data["entry"]), "stop_loss": float(data["stop_loss"]),
-                    "targets": [float(data[k]) for k in LEVELS],
+                    "entry": round(float(data["entry"]), 2),
+                    "stop_loss": round(float(data["entry"]) - float(controls["trade_stop_points"]) if signal == "BUY" else float(data["entry"]) + float(controls["trade_stop_points"]), 2),
+                    "targets": [round(float(data["entry"]) + float(controls["trade_target_points"]) if signal == "BUY" else float(data["entry"]) - float(controls["trade_target_points"]), 2)],
+                    "target_count": 1,
                     "signal_updated_utc": updated.isoformat(),
                     "candle_time": data["candle_time"],
                     "created_at": now.isoformat(), "status": "PENDING",
@@ -665,23 +670,14 @@ def main():
                 closed.append(trade)
         state["active_trades"] = still_open
         # Enforce the capital-protection lock immediately after newly processed outcomes.
-        day_losses = [
-            t for t in state["closed_trades"] + state["active_trades"]
-            if t.get("status") == "LOSS" and t.get("closed_at")
-            and parse_time(t["closed_at"]).astimezone(YEMEN).date().isoformat() == day_key
-        ]
-        decisive_now = sorted(
-            [t for t in state["closed_trades"] if t.get("status") in ("LOSS", "WIN_TP3") and t.get("closed_at")],
-            key=lambda t: parse_time(t["closed_at"])
-        )
-        trailing_losses = 0
-        for row in reversed(decisive_now):
-            if row.get("status") != "LOSS":
-                break
-            trailing_losses += 1
-        if len(day_losses) >= controls["daily_loss_limit_losses"] or trailing_losses >= controls["max_consecutive_losses"]:
+        current_daily_net = daily_net_points(state["closed_trades"], day_key)
+        if current_daily_net <= -daily_limit:
             state["risk_pause_day"] = day_key
-            state["risk_pause_reason"] = "تم بلوغ حد الخسائر؛ إيقاف الإشارات حتى يوم التداول التالي"
+            state["risk_pause_reason"] = f"تم بلوغ حد صافي الخسارة اليومية: {current_daily_net:.2f} نقطة"
+        else:
+            state.pop("risk_pause_day", None)
+            state.pop("risk_pause_reason", None)
+        if current_daily_net <= -daily_limit:
             if trade_to_publish is not None:
                 for pending in list(state["active_trades"]):
                     if pending.get("signal_key") == current_key and pending.get("status") == "PENDING":
@@ -746,14 +742,13 @@ def main():
         if trade_to_publish is not None:
             side = "شراء" if signal == "BUY" else "بيع"
             icon = "🟢" if signal == "BUY" else "🔴"
+            published_trade = next((t for t in state["active_trades"] if t.get("signal_key") == current_key), None)
             message = (
                 "👑 أسطورة المجال | صفقة ذهب\n\n"
                 f"{icon} {side} XAUUSD\n"
-                f"💰 الدخول: {num(trade_to_publish['entry'])}\n"
-                f"🛑 الاستوب: {num(trade_to_publish['stop_loss'])}\n"
-                f"🎯 TP1: {num(trade_to_publish['take_profit_1'])}\n"
-                f"🎯 TP2: {num(trade_to_publish['take_profit_2'])}\n"
-                f"🎯 TP3: {num(trade_to_publish['take_profit_3'])}\n"
+                f"💰 الدخول: {num(published_trade['entry'])}\n"
+                f"🛑 الاستوب: {num(published_trade['stop_loss'])} (-{num(controls['trade_stop_points'])} نقاط)\n"
+                f"🎯 الهدف الوحيد TP1: {num(published_trade['targets'][0])} (+{num(controls['trade_target_points'])} نقاط)\n"
                 f"⭐ جودة الإشارة: <b>{int(trade_to_publish.get('quality_score', data.get('quality_score', 0)))}/100</b> (تقييم فني وليس احتمال نجاح)\n"
                 f"{historical_success_rate(state)}\n"
                 "🛡️ إدارة المخاطر: لا تخاطر بأكثر من 1% من رأس المال في الصفقة الواحدة."
