@@ -229,13 +229,14 @@ def announce_daily_news_summary(state, now):
     for event_time, impact, title, item in events:
         local = event_time.astimezone(YEMEN)
         status = "انتهى موعده" if event_time < now else "قادم"
-        impact_ar = "🔴 قوي" if impact == "high" else "🟠 متوسط"
+        impact_ar = "🔴 قوي جداً" if impact == "high" else "🟠 متوسط"
+        impact_pct = 90 if impact == "high" else 65
         forecast = str(item.get("forecast") or "غير متوفر")
         previous = str(item.get("previous") or "غير متوفر")
         actual = str(item.get("actual") or "لم يصدر")
         lines.extend([
             f"\n⏰ <b>{local.strftime('%H:%M')} — {html.escape(title)}</b>",
-            f"التأثير: {impact_ar} | الحالة: {status}",
+            f"قوة التأثير التقديرية: {impact_pct}% ({impact_ar}) | الحالة: {status}",
             f"الفعلي: {html.escape(actual)} | التوقع: {html.escape(forecast)} | السابق: {html.escape(previous)}"
         ])
 
@@ -245,6 +246,7 @@ def announce_daily_news_summary(state, now):
         "• بيانات أمريكية أقوى من التوقعات غالباً تدعم الدولار والعوائد وتضغط على الذهب.",
         "• بيانات أضعف من التوقعات غالباً تضعف الدولار وتدعم الذهب.",
         "• تصريحات الفيدرالي تعتمد على نبرة التشديد أو التيسير؛ لا يُفترض اتجاه مسبق.",
+        "📌 مقياس القوة تقديري حسب تصنيف التقويم: قوي 90%، متوسط 65%؛ وليس احتمال ربح أو توقعاً لاتجاه الذهب.",
         "⚠️ لا يمكن تحديد اتجاه الخبر قبل صدور القراءة ومقارنتها بالتوقعات. تجنب الدخول العشوائي وقت الخبر.",
         "المصدر: التقويم الاقتصادي Forex Factory؛ الأوقات محولة إلى توقيت اليمن."
     ])
@@ -290,12 +292,13 @@ def announce_upcoming_news(state, now):
                 "🚨 <b>أسطورة المجال | خبر اقتصادي مهم بعد قليل</b>\n\n"
                 f"📰 الخبر: <b>{html.escape(title)}</b>\n"
                 f"💵 العملة: <b>{currency}</b>\n"
-                "🔴 التأثير: <b>قوي</b>\n"
+                "🔴 التأثير: <b>قوي جداً</b> | قوة التأثير التقديرية: <b>90%</b>\n"
                 f"⏰ الموعد: <b>{local_time} بتوقيت اليمن</b>\n"
                 f"📅 التاريخ: <b>{local_date}</b>\n"
                 f"📊 التوقع: {html.escape(forecast)}\n"
                 f"📌 السابق: {html.escape(previous)}\n\n"
                 "🥇 قد يسبب الخبر تذبذبًا قويًا في الذهب XAUUSD.\n"
+                "📌 نسبة 90% تقدير لشدة التأثير حسب تصنيف التقويم، وليست احتمال نجاح صفقة أو تحديد اتجاه السعر.\n"
                 "⚠️ راقب حركة السعر ولا تدخل عشوائيًا وقت صدور الخبر.\n"
                 "المصدر: Forex Factory"
             )
