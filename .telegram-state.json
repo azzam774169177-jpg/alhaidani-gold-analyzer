@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "d3502d2b41061c662f91b5f3a85ae146ab706d451ce483d141f89c958d18bbf7",
-  "last_bar_ts": 1794901350,
+  "last_signal_key": "27ccabd2f14445f24ff32a06b49dbb02cdba576058d1b66e5c90ecbb1d26cb12",
+  "last_bar_ts": 1794902606,
   "active_trades": [
     {
       "signal_key": "7b682e4bb23066b615aca175b9b5e563e491f37805b8c006959efe6eca3ac676",
@@ -18,7 +18,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794901350,
+      "last_checked_bar": 1794902606,
       "activated_at": "2026-11-16T07:39:00+00:00"
     }
   ],
