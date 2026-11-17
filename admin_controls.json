@@ -4,7 +4,7 @@
   "min_quality_score": 65,
   "notes": "New signals use one TP at +10 gold points and SL at -10 gold points. Daily signal lock is based only on realized net P/L: pause at -50 points or worse, resume automatically on the next Yemen calendar day. One gold point is 1.00 price movement (10 pips). Max three concurrent signals; technical quality threshold remains 65/100.",
   "config_version": 3,
-  "last_manual_health_check_utc": "2026-11-17T07:35:00Z",
+  "last_manual_health_check_utc": "2026-11-17T08:13:11.291Z",
   "trade_target_points": 10,
   "trade_stop_points": 10,
   "daily_net_loss_limit_points": 50
