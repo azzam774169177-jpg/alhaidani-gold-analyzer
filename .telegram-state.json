@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "ac947ad708090674a0cfffc7e0e45a607d9682eed0ace03abba7744f885e1258",
-  "last_bar_ts": 1794921885,
+  "last_signal_key": "5db66c7e4ab9a740bad3a594e60f3a299dcf8a33bb07e2d658d71273ddca6a1a",
+  "last_bar_ts": 1794923378,
   "active_trades": [
     {
       "signal_key": "7b682e4bb23066b615aca175b9b5e563e491f37805b8c006959efe6eca3ac676",
@@ -18,48 +18,8 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1794921885,
+      "last_checked_bar": 1794923378,
       "activated_at": "2026-11-16T07:39:00+00:00"
-    },
-    {
-      "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
-      "trade_id": "bff2bc0c95d8",
-      "side": "SELL",
-      "entry": 3863.9,
-      "stop_loss": 3873.9,
-      "targets": [
-        3853.9
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-17T11:46:09.955778+00:00",
-      "candle_time": "2026-11-17T11:30:00+00:00",
-      "created_at": "2026-11-17T11:46:10.485016+00:00",
-      "status": "ACTIVE",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1794921885,
-      "quality_score": 75,
-      "activated_at": "2026-11-17T11:37:00+00:00"
-    },
-    {
-      "signal_key": "98b0550a8b16d1e7a5e91bc561cf52c99ab9964e8ebdf1db857e2bd9f604fd7d",
-      "trade_id": "98b0550a8b16",
-      "side": "SELL",
-      "entry": 3860.9,
-      "stop_loss": 3870.9,
-      "targets": [
-        3850.9
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-17T13:03:28.551384+00:00",
-      "candle_time": "2026-11-17T12:45:00+00:00",
-      "created_at": "2026-11-17T13:03:29.121341+00:00",
-      "status": "ACTIVE",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1794921885,
-      "quality_score": 75,
-      "activated_at": "2026-11-17T12:53:50+00:00"
     }
   ],
   "closed_trades": [
@@ -555,6 +515,56 @@
       "closed_at": "2026-11-16T14:48:00+00:00",
       "close_price": 3891.41,
       "result_delta": -29.809999999999945
+    },
+    {
+      "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
+      "trade_id": "bff2bc0c95d8",
+      "side": "SELL",
+      "entry": 3863.9,
+      "stop_loss": 3873.9,
+      "targets": [
+        3853.9
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-17T11:46:09.955778+00:00",
+      "candle_time": "2026-11-17T11:30:00+00:00",
+      "created_at": "2026-11-17T11:46:10.485016+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-17T13:31:00+00:00"
+      },
+      "last_checked_bar": 1794922260,
+      "quality_score": 75,
+      "activated_at": "2026-11-17T11:37:00+00:00",
+      "closed_at": "2026-11-17T13:31:00+00:00",
+      "close_price": 3853.9,
+      "result_delta": 10.0
+    },
+    {
+      "signal_key": "98b0550a8b16d1e7a5e91bc561cf52c99ab9964e8ebdf1db857e2bd9f604fd7d",
+      "trade_id": "98b0550a8b16",
+      "side": "SELL",
+      "entry": 3860.9,
+      "stop_loss": 3870.9,
+      "targets": [
+        3850.9
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-17T13:03:28.551384+00:00",
+      "candle_time": "2026-11-17T12:45:00+00:00",
+      "created_at": "2026-11-17T13:03:29.121341+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-17T13:32:00+00:00"
+      },
+      "last_checked_bar": 1794922320,
+      "quality_score": 75,
+      "activated_at": "2026-11-17T12:53:50+00:00",
+      "closed_at": "2026-11-17T13:32:00+00:00",
+      "close_price": 3850.9,
+      "result_delta": 10.0
     }
   ],
   "last_daily_yemen_day": "2026-11-17",
