@@ -1,5 +1,5 @@
 {
-  "last_signal_key": "00a3b8d1ed705a5ca9b1d4ca70a23259eb0d705273ac4e5e1589367b8aaf83d1",
+  "last_signal_key": "3d56d6ac4271d11316304c6c8d7e7b78368a9912ce490ab637c7da52cdea9e8c",
   "last_bar_ts": 1794951830,
   "active_trades": [
     {
@@ -610,7 +610,7 @@
   "last_weekly_key": "2026-W47",
   "last_monthly_key": null,
   "last_error": null,
-  "last_quote_warning": null,
+  "last_quote_warning": "quote_stale",
   "last_announced_key": "00a3b8d1ed705a5ca9b1d4ca70a23259eb0d705273ac4e5e1589367b8aaf83d1",
   "announced_economic_events": [],
   "daily_news_summary_date": "2026-11-18"
