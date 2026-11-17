@@ -2,9 +2,10 @@
   "signals_paused": false,
   "max_concurrent_trades": 3,
   "min_quality_score": 65,
-  "max_consecutive_losses": 2,
-  "daily_loss_limit_losses": 2,
-  "notes": "Controls are read by telegram_notifier.py. The concurrent trade cap is hard-limited to 3. Quality score is technical, not a statistical win probability. Loss locks pause new signals until the next Yemen calendar day.",
-  "config_version": 2,
-  "last_manual_health_check_utc": "2026-11-17T07:35:00Z"
+  "notes": "New signals use one TP at +10 gold points and SL at -10 gold points. Daily signal lock is based only on realized net P/L: pause at -50 points or worse, resume automatically on the next Yemen calendar day. One gold point is 1.00 price movement (10 pips). Max three concurrent signals; technical quality threshold remains 65/100.",
+  "config_version": 3,
+  "last_manual_health_check_utc": "2026-11-17T07:35:00Z",
+  "trade_target_points": 10,
+  "trade_stop_points": 10,
+  "daily_net_loss_limit_points": 50
 }
