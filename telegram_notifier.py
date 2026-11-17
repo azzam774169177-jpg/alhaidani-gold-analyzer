@@ -184,6 +184,75 @@ def fetch_economic_calendar():
     return payload
 
 
+
+def announce_daily_news_summary(state, now):
+    """Send one complete USD high/medium-impact calendar digest per Yemen day."""
+    day_key = now.astimezone(YEMEN).date().isoformat()
+    if state.get("daily_news_summary_date") == day_key:
+        return
+    try:
+        calendar = fetch_economic_calendar()
+    except Exception as exc:
+        print(f"DAILY_NEWS_CALENDAR_WARNING: {exc}")
+        return
+
+    events = []
+    for item in calendar:
+        try:
+            if str(item.get("country", "")).upper() != "USD":
+                continue
+            impact = str(item.get("impact", "")).strip().lower()
+            if impact not in ("high", "medium"):
+                continue
+            title = str(item.get("title", "")).strip()
+            raw_date = item.get("date")
+            if not title or not raw_date:
+                continue
+            event_time = parse_time(raw_date)
+            local = event_time.astimezone(YEMEN)
+            if local.date().isoformat() != day_key:
+                continue
+            events.append((event_time, impact, title, item))
+        except Exception as exc:
+            print(f"DAILY_NEWS_EVENT_WARNING: {exc}")
+
+    if not events:
+        print("DAILY_NEWS_SUMMARY: no USD high/medium events found for today; will retry next cycle.")
+        return
+
+    events.sort(key=lambda row: row[0])
+    lines = [
+        "👑 <b>أسطورة المجال | الأجندة الاقتصادية الكاملة لليوم</b>",
+        f"📅 {day_key} | بتوقيت اليمن",
+        "━━━━━━━━━━━━━━━━━━"
+    ]
+    for event_time, impact, title, item in events:
+        local = event_time.astimezone(YEMEN)
+        status = "انتهى موعده" if event_time < now else "قادم"
+        impact_ar = "🔴 قوي" if impact == "high" else "🟠 متوسط"
+        forecast = str(item.get("forecast") or "غير متوفر")
+        previous = str(item.get("previous") or "غير متوفر")
+        actual = str(item.get("actual") or "لم يصدر")
+        lines.extend([
+            f"\n⏰ <b>{local.strftime('%H:%M')} — {html.escape(title)}</b>",
+            f"التأثير: {impact_ar} | الحالة: {status}",
+            f"الفعلي: {html.escape(actual)} | التوقع: {html.escape(forecast)} | السابق: {html.escape(previous)}"
+        ])
+
+    lines.extend([
+        "\n━━━━━━━━━━━━━━━━━━",
+        "🥇 <b>قراءة الذهب XAUUSD:</b>",
+        "• بيانات أمريكية أقوى من التوقعات غالباً تدعم الدولار والعوائد وتضغط على الذهب.",
+        "• بيانات أضعف من التوقعات غالباً تضعف الدولار وتدعم الذهب.",
+        "• تصريحات الفيدرالي تعتمد على نبرة التشديد أو التيسير؛ لا يُفترض اتجاه مسبق.",
+        "⚠️ لا يمكن تحديد اتجاه الخبر قبل صدور القراءة ومقارنتها بالتوقعات. تجنب الدخول العشوائي وقت الخبر.",
+        "المصدر: التقويم الاقتصادي Forex Factory؛ الأوقات محولة إلى توقيت اليمن."
+    ])
+    send_telegram("\n".join(lines))
+    state["daily_news_summary_date"] = day_key
+    save_state(state)
+    print(f"DAILY_NEWS_SUMMARY_SENT: {day_key}, events={len(events)}")
+
 def announce_upcoming_news(state, now):
     """Announce high-impact USD news roughly 15 minutes before release."""
     try:
@@ -522,7 +591,7 @@ def main():
     state = load_state()
     controls = load_admin_controls()
     now = utc_now()
-    announce_upcoming_news(state, now)
+    announce_daily_news_summary(state, now)\n    announce_upcoming_news(state, now)
 
     # Hard maintenance lock: prevent any manual or automatic run from publishing trades.
     try:
