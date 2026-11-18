@@ -1,28 +1,7 @@
 {
-  "last_signal_key": "084c94e8f0a837af3b6570409fdc79f8194a7d840451737759fbeff4f13ec64c",
-  "last_bar_ts": 1795026527,
-  "active_trades": [
-    {
-      "signal_key": "084c94e8f0a837af3b6570409fdc79f8194a7d840451737759fbeff4f13ec64c",
-      "trade_number": 9,
-      "trade_id": "9",
-      "side": "SELL",
-      "entry": 3742.9,
-      "stop_loss": 3752.9,
-      "targets": [
-        3732.9
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-18T18:38:48.200142+00:00",
-      "candle_time": "2026-11-18T18:15:00+00:00",
-      "created_at": "2026-11-18T18:38:49.207561+00:00",
-      "status": "PENDING",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1795026527,
-      "quality_score": 75
-    }
-  ],
+  "last_signal_key": "53e47f0326d48b31fa3f1caee41969696e901555c0144e5022853398da750b07",
+  "last_bar_ts": 1795030362,
+  "active_trades": [],
   "closed_trades": [
     {
       "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
@@ -229,6 +208,32 @@
       "close_price": 3746.7,
       "result_delta": 10,
       "trade_number": 8
+    },
+    {
+      "signal_key": "084c94e8f0a837af3b6570409fdc79f8194a7d840451737759fbeff4f13ec64c",
+      "trade_number": 9,
+      "trade_id": "9",
+      "side": "SELL",
+      "entry": 3742.9,
+      "stop_loss": 3752.9,
+      "targets": [
+        3732.9
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-18T18:38:48.200142+00:00",
+      "candle_time": "2026-11-18T18:15:00+00:00",
+      "created_at": "2026-11-18T18:38:49.207561+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-18T19:07:00+00:00"
+      },
+      "last_checked_bar": 1795028820,
+      "quality_score": 75,
+      "activated_at": "2026-11-18T18:29:00+00:00",
+      "closed_at": "2026-11-18T19:07:00+00:00",
+      "close_price": 3732.9,
+      "result_delta": 10.0
     }
   ],
   "last_daily_yemen_day": "2026-11-18",
