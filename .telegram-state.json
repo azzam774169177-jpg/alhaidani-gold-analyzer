@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "7fe8325ab42ca6523d3d5f661dd561cd47937c87034b29ece058bd7703727a34",
-  "last_bar_ts": 1794961510,
+  "last_signal_key": "c28753f6b86a1e2707488a9692268d76d72e1f09e0e5a8688acf10fcc2eac149",
+  "last_bar_ts": 1794966420,
   "active_trades": [
     {
       "signal_key": "7b682e4bb23066b615aca175b9b5e563e491f37805b8c006959efe6eca3ac676",
@@ -16,10 +16,13 @@
       "candle_time": "2026-11-16T07:30:00+00:00",
       "created_at": "2026-11-16T07:47:23.252772+00:00",
       "status": "ACTIVE",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1794961510,
-      "activated_at": "2026-11-16T07:39:00+00:00"
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-18T00:45:00+00:00"
+      },
+      "last_checked_bar": 1794966420,
+      "activated_at": "2026-11-16T07:39:00+00:00",
+      "trade_id": "7b682e4bb230"
     }
   ],
   "closed_trades": [
