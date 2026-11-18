@@ -4,7 +4,7 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
   "signal": "WAIT",
-  "reason": "الزخم غير مناسب أو قد يكون مستنفداً لاتجاه SELL (RSI=26.6)؛ تم منع مطاردة الحركة.",
+  "reason": "الزخم غير مناسب أو قد يكون مستنفداً لاتجاه SELL (RSI=31.8)؛ تم منع مطاردة الحركة.",
   "price": 0,
   "entry": null,
   "stop_loss": null,
@@ -12,16 +12,16 @@
   "take_profit_2": null,
   "take_profit_3": null,
   "candle_time": "2026-11-18T05:30:00+00:00",
-  "updated_utc": "2026-11-18T05:46:36.945774+00:00",
+  "updated_utc": "2026-11-18T05:50:09.765535+00:00",
   "execution_mode": "SIGNALS_ONLY",
   "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
   "timeframes": {
     "M15": {
       "trend": "SELL",
-      "price": 3788.699951171875,
-      "ema20": 3801.3717443985906,
-      "ema50": 3823.939772138533,
-      "rsi14": 26.585839265123283,
+      "price": 3793.60009765625,
+      "ema20": 3801.8384250161503,
+      "ema50": 3824.1319347457634,
+      "rsi14": 31.817694247847484,
       "candle_time": "2026-11-18T05:30:00+00:00"
     },
     "H1": {
