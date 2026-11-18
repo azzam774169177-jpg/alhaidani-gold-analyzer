@@ -804,20 +804,24 @@ def main():
             events.append("⚠️ <b>تنبيه حداثة البيانات:</b> " + warning_text)
         state["last_quote_warning"] = warning_key
 
-        yday = now.astimezone(YEMEN).date()
+        local_now = now.astimezone(YEMEN)
+        yday = local_now.date()
         day_key = yday.isoformat()
         trades_all = state["closed_trades"] + state["active_trades"]
-        if state.get("last_daily_yemen_day") != day_key:
+        report_events = []
+        # Send the completed daily report at 23:55 Yemen time, after the trading day.
+        if local_now.hour == 23 and local_now.minute >= 55 and state.get("last_daily_yemen_day") != day_key:
             start = datetime.combine(yday, datetime.min.time(), YEMEN).astimezone(timezone.utc)
             end = start + timedelta(days=1)
-            events.append(summarize(trades_all, start, end, "جرد نتائج اليوم"))
+            report_events.append(summarize(trades_all, start, end, "جرد نتائج اليوم"))
             state["last_daily_yemen_day"] = day_key
+        # Trading-week report: Friday 23:55 Yemen time, Monday through Friday.
         week_key = f"{yday.isocalendar().year}-W{yday.isocalendar().week:02d}"
-        if yday.weekday() == 0 and state.get("last_weekly_key") != week_key:
-            start_day = yday - timedelta(days=7)
+        if yday.weekday() == 4 and local_now.hour == 23 and local_now.minute >= 55 and state.get("last_weekly_key") != week_key:
+            start_day = yday - timedelta(days=4)
             start = datetime.combine(start_day, datetime.min.time(), YEMEN).astimezone(timezone.utc)
-            end = datetime.combine(yday, datetime.min.time(), YEMEN).astimezone(timezone.utc)
-            events.append(summarize(trades_all, start, end, "الجرد الأسبوعي السابق"))
+            end = datetime.combine(yday + timedelta(days=1), datetime.min.time(), YEMEN).astimezone(timezone.utc)
+            report_events.append(summarize(trades_all, start, end, "جرد نتائج الأسبوع"))
             state["last_weekly_key"] = week_key
         month_key = f"{yday.year}-{yday.month:02d}"
         if yday.day == 1 and state.get("last_monthly_key") != month_key:
@@ -855,6 +859,12 @@ def main():
             send_telegram(message)
             messages_sent += 1
             print(f"TRADE_PUBLISHED: {signal} XAUUSD entry={published_trade['entry']} target={published_trade['targets'][0]} stop={published_trade['stop_loss']}")
+
+        # Send daily/weekly reports once, only after the relevant period is complete.
+        for report in report_events:
+            send_telegram(report)
+            messages_sent += 1
+            print("PERIODIC_REPORT_SENT: " + ("weekly" if "جرد نتائج الأسبوع" in report else "daily"))
 
         # Publish one-time trade outcome alerts. The monitor emits these events
         # only while processing previously unseen one-minute bars; state is
