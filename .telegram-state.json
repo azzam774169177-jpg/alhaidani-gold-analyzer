@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "c7a8607b641eca700b2b2a8fa597aef6e85094beeb33090cdfb30f6627cf84f7",
-  "last_bar_ts": 1795037235,
+  "last_signal_key": "3d54465d3321354e78a19ba9fb4c00e86b4e365d81ee340c419fc72472cde6b8",
+  "last_bar_ts": 1795043948,
   "active_trades": [
     {
       "signal_key": "7ba87f73e77243e8aebbe77f0994b01ef074c03df0aaa3ef033a92d92907ee66",
@@ -16,11 +16,12 @@
       "signal_updated_utc": "2026-11-18T21:37:28.745061+00:00",
       "candle_time": "2026-11-18T21:15:00+00:00",
       "created_at": "2026-11-18T21:37:29.433029+00:00",
-      "status": "PENDING",
+      "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795037235,
-      "quality_score": 75
+      "last_checked_bar": 1795043948,
+      "quality_score": 75,
+      "activated_at": "2026-11-18T21:30:00+00:00"
     }
   ],
   "closed_trades": [
@@ -261,7 +262,7 @@
   "last_weekly_key": "2026-W47",
   "last_monthly_key": null,
   "last_error": null,
-  "last_quote_warning": "quote_stale",
+  "last_quote_warning": null,
   "last_announced_key": "7ba87f73e77243e8aebbe77f0994b01ef074c03df0aaa3ef033a92d92907ee66",
   "announced_economic_events": [],
   "daily_news_summary_date": "2026-11-19",
