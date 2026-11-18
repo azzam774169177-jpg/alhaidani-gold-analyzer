@@ -766,16 +766,19 @@ def main():
         else:
             state.pop("risk_pause_day", None)
             state.pop("risk_pause_reason", None)
-        if current_daily_net <= -daily_limit:
+        if current_daily_net <= -daily_limit or current_daily_net >= profit_target:
             if trade_to_publish is not None:
                 for pending in list(state["active_trades"]):
                     if pending.get("signal_key") == current_key and pending.get("status") == "PENDING":
-                        pending["status"] = "CANCELLED_RISK_LOCK"
+                        pending["status"] = "CANCELLED_DAILY_LIMIT"
                         pending["closed_at"] = now.isoformat()
                         state["active_trades"].remove(pending)
                         state["closed_trades"].append(pending)
                 trade_to_publish = None
-                events.append("🛡️ <b>تم تفعيل حماية رأس المال:</b> إيقاف الإشارات بعد بلوغ حد الخسائر.")
+            if current_daily_net <= -daily_limit:
+                events.append("🛡️ تم تفعيل حماية رأس المال: بلوغ حد الخسارة اليومية.")
+            else:
+                events.append("🏁 تم تحقيق الهدف اليومي +100 نقطة صافي؛ توقفت الإشارات الجديدة.")
         # Retain up to one year of closed history.
         cutoff = now - timedelta(days=370)
         state["closed_trades"] = [t for t in closed if not t.get("closed_at") or parse_time(t["closed_at"]) >= cutoff]
@@ -865,6 +868,7 @@ def main():
                 or "Stop Loss:" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
                 or "تم تفعيل حماية رأس المال" in event
+                or "تم تحقيق الهدف اليومي +100 نقطة صافي" in event
             )
         ]
         for event in status_events:
