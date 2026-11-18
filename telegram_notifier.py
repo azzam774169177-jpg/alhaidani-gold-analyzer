@@ -115,6 +115,7 @@ def send_telegram(message):
 def load_admin_controls():
     defaults = {
         "signals_paused": False, "max_concurrent_trades": 3,
+        "max_daily_trades": 10, "daily_net_profit_target_points": 100.0,
         "min_quality_score": 65, "trade_target_points": 10.0,
         "trade_stop_points": 10.0, "daily_net_loss_limit_points": 50.0
     }
@@ -130,6 +131,8 @@ def load_admin_controls():
     defaults["trade_target_points"] = max(0.1, min(100.0, float(defaults["trade_target_points"])))
     defaults["trade_stop_points"] = max(0.1, min(100.0, float(defaults["trade_stop_points"])))
     defaults["daily_net_loss_limit_points"] = max(1.0, min(10000.0, float(defaults["daily_net_loss_limit_points"])))
+    defaults["max_daily_trades"] = max(1, min(50, int(defaults["max_daily_trades"])))
+    defaults["daily_net_profit_target_points"] = max(1.0, min(10000.0, float(defaults["daily_net_profit_target_points"])))
     return defaults
 
 
@@ -156,11 +159,26 @@ def daily_net_points(trades, day_key):
         result = trade.get("result_delta")
         if not closed_at or not isinstance(result, (int, float)):
             continue
-        if trade.get("status") not in ("WIN_TP1", "WIN_TP3", "LOSS"):
+        if trade.get("status") not in ("WIN_TP1", "WIN_TP3", "LOSS", "MIXED_AFTER_TARGET"):
             continue
         if parse_time(closed_at).astimezone(YEMEN).date().isoformat() == day_key:
             total += float(result)
     return round(total, 2)
+
+
+def daily_trade_count(trades, day_key):
+    """Count all trade setups registered during the Yemen calendar day."""
+    count = 0
+    for trade in trades:
+        created_at = trade.get("created_at") or trade.get("signal_updated_utc")
+        if not created_at:
+            continue
+        try:
+            if parse_time(created_at).astimezone(YEMEN).date().isoformat() == day_key:
+                count += 1
+        except (TypeError, ValueError):
+            continue
+    return count
 
 
 def save_state(state):
@@ -665,13 +683,20 @@ def main():
         state.pop("risk_pause_reason", None)
         current_daily_net = daily_net_points(closed, day_key)
         daily_limit = float(controls["daily_net_loss_limit_points"])
+        profit_target = float(controls["daily_net_profit_target_points"])
+        daily_cap = int(controls["max_daily_trades"])
+        trades_today = daily_trade_count(active + closed, day_key)
         risk_locked = current_daily_net <= -daily_limit
+        profit_locked = current_daily_net >= profit_target
+        count_locked = trades_today >= daily_cap
         if risk_locked:
             state["risk_pause_day"] = day_key
             state["risk_pause_reason"] = f"صافي خسارة اليوم {current_daily_net:.2f} نقطة بلغ الحد -{daily_limit:.2f}"
         actionable_fresh = (
             signal in ("BUY", "SELL")
             and not risk_locked
+            and not profit_locked
+            and not count_locked
             and isinstance(data.get("quality_score"), (int, float))
             and data.get("quality_score", 0) >= controls["min_quality_score"]
             and not quote_stale
@@ -849,6 +874,8 @@ def main():
         if signal in ("BUY", "SELL") and trade_to_publish is None:
             blockers = []
             if risk_locked: blockers.append("daily_net_loss_limit")
+            if profit_locked: blockers.append("daily_net_profit_target_reached")
+            if count_locked: blockers.append("daily_trade_limit_reached")
             if quote_stale: blockers.append("quote_stale")
             if not ( -60 <= updated_age <= MAX_SIGNAL_AGE_SECONDS): blockers.append("signal_stale")
             if not (-60 <= candle_age <= MAX_CANDLE_AGE_SECONDS): blockers.append("candle_stale")
