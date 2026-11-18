@@ -274,15 +274,17 @@ def announce_daily_news_summary(state, now):
     print(f"DAILY_NEWS_SUMMARY_SENT: {day_key}, events={len(events)}")
 
 def announce_upcoming_news(state, now):
-    """Announce high-impact USD news roughly 15 minutes before release."""
+    """Warn five minutes before high-impact USD news and return the active no-entry window."""
     try:
         calendar = fetch_economic_calendar()
     except Exception as exc:
         print(f"NEWS_CALENDAR_WARNING: {exc}")
-        return
+        # Fail safe: without a current calendar, do not claim a news blackout.
+        return False
 
-    sent = state.setdefault("announced_economic_events", [])
-    sent_set = set(sent)
+    warned = state.setdefault("announced_economic_events_5m", [])
+    warned_set = set(warned)
+    blackout_active = False
     for item in calendar:
         try:
             currency = str(item.get("country", "")).upper()
@@ -293,43 +295,44 @@ def announce_upcoming_news(state, now):
                 continue
             event_time = parse_time(raw_date)
             minutes_until = (event_time - now).total_seconds() / 60
-            # Five-minute workflow cadence: announce once in the 10–16 min window.
-            if not (10 <= minutes_until <= 16):
-                continue
+
+            # No new signals from 15 minutes before until 15 minutes after release.
+            if -15 <= minutes_until <= 15:
+                blackout_active = True
+
+            # The workflow runs every five minutes; this window tolerates scheduler jitter.
             event_key = hashlib.sha256(
                 f"{raw_date}|{currency}|{title}".encode("utf-8")
             ).hexdigest()
-            if event_key in sent_set:
-                continue
-
-            local_time = event_time.astimezone(YEMEN).strftime("%H:%M")
-            local_date = event_time.astimezone(YEMEN).strftime("%Y-%m-%d")
-            forecast = str(item.get("forecast") or "غير متوفر")
-            previous = str(item.get("previous") or "غير متوفر")
-            message = (
-                "🚨 <b>أسطورة المجال | خبر اقتصادي مهم بعد قليل</b>\n\n"
-                f"📰 الخبر: <b>{html.escape(title)}</b>\n"
-                f"💵 العملة: <b>{currency}</b>\n"
-                "🔴 التأثير: <b>قوي جداً</b> | قوة التأثير التقديرية: <b>90%</b>\n"
-                f"⏰ الموعد: <b>{local_time} بتوقيت اليمن</b>\n"
-                f"📅 التاريخ: <b>{local_date}</b>\n"
-                f"📊 التوقع: {html.escape(forecast)}\n"
-                f"📌 السابق: {html.escape(previous)}\n\n"
-                "🥇 قد يسبب الخبر تذبذبًا قويًا في الذهب XAUUSD.\n"
-                "📌 نسبة 90% تقدير لشدة التأثير حسب تصنيف التقويم، وليست احتمال نجاح صفقة أو تحديد اتجاه السعر.\n"
-                "⚠️ راقب حركة السعر ولا تدخل عشوائيًا وقت صدور الخبر.\n"
-                "المصدر: Forex Factory"
-            )
-            send_telegram(message)
-            sent.append(event_key)
-            sent_set.add(event_key)
-            state["announced_economic_events"] = sent[-500:]
-            # Persist immediately so a later signal/quote failure cannot resend this alert.
-            save_state(state)
-            print(f"ECONOMIC_NEWS_SENT: {title} at {raw_date}")
+            if 3 <= minutes_until <= 7 and event_key not in warned_set:
+                local_time = event_time.astimezone(YEMEN).strftime("%H:%M")
+                local_date = event_time.astimezone(YEMEN).strftime("%Y-%m-%d")
+                forecast = str(item.get("forecast") or "غير متوفر")
+                previous = str(item.get("previous") or "غير متوفر")
+                message = (
+                    "🚨 <b>أسطورة المجال | تحذير: خبر أمريكي بعد 5 دقائق</b>\n\n"
+                    f"📰 الخبر: <b>{html.escape(title)}</b>\n"
+                    f"💵 العملة: <b>{currency}</b> | 🔴 التأثير: <b>عالٍ</b>\n"
+                    f"⏰ الموعد: <b>{local_time} بتوقيت اليمن</b>\n"
+                    f"📅 التاريخ: <b>{local_date}</b>\n"
+                    f"📊 التوقع: {html.escape(forecast)} | السابق: {html.escape(previous)}\n\n"
+                    "⛔ يوقف البوت إصدار صفقات جديدة قبل الخبر بـ15 دقيقة وحتى 15 دقيقة بعد صدوره.\n"
+                    "⚠️ قد يرتفع التذبذب والسيولة؛ انتظر هدوء السوق وتأكيد الحركة.\n"
+                    "المصدر: Forex Factory"
+                )
+                send_telegram(message)
+                warned.append(event_key)
+                warned_set.add(event_key)
+                state["announced_economic_events_5m"] = warned[-500:]
+                save_state(state)
+                print(f"ECONOMIC_NEWS_5M_WARNING_SENT: {title} at {raw_date}")
         except Exception as exc:
             print(f"NEWS_EVENT_WARNING: {exc}")
-    state["announced_economic_events"] = sent[-500:]
+
+    state["announced_economic_events_5m"] = warned[-500:]
+    if blackout_active:
+        print("NEWS_BLACKOUT_ACTIVE: high-impact USD event within +/-15 minutes; new signals blocked.")
+    return blackout_active
 
 
 def fetch_quote_bars():
@@ -604,7 +607,7 @@ def main():
     controls = load_admin_controls()
     now = utc_now()
     announce_daily_news_summary(state, now)
-    announce_upcoming_news(state, now)
+    news_blackout_active = announce_upcoming_news(state, now)
 
     # Hard maintenance lock: prevent any manual or automatic run from publishing trades.
     try:
@@ -697,6 +700,7 @@ def main():
             and not risk_locked
             and not profit_locked
             and not count_locked
+            and not news_blackout_active
             and isinstance(data.get("quality_score"), (int, float))
             and data.get("quality_score", 0) >= controls["min_quality_score"]
             and not quote_stale
@@ -890,6 +894,7 @@ def main():
             if risk_locked: blockers.append("daily_net_loss_limit")
             if profit_locked: blockers.append("daily_net_profit_target_reached")
             if count_locked: blockers.append("daily_trade_limit_reached")
+            if news_blackout_active: blockers.append("high_impact_usd_news_blackout")
             if quote_stale: blockers.append("quote_stale")
             if not ( -60 <= updated_age <= MAX_SIGNAL_AGE_SECONDS): blockers.append("signal_stale")
             if not (-60 <= candle_age <= MAX_CANDLE_AGE_SECONDS): blockers.append("candle_stale")
