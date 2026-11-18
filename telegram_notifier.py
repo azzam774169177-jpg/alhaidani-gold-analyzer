@@ -467,9 +467,8 @@ def process_bar_for_trade(trade, bar, events):
         trade["activated_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
-            "<b>تم تفعيل الصفقة ✅</b>\n"
-            f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-            f"الاتجاه: {trade['side']} | الزوج: XAUUSD | الدخول: {num(entry)}"
+            "🟢 تم تفعيل الصفقة ✅\n\n"
+            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
         )
         # Do not infer TP/SL ordering from the same one-minute candle that
         # first activated the setup; begin outcome monitoring on the next bar.
@@ -489,10 +488,8 @@ def process_bar_for_trade(trade, bar, events):
         trade["last_checked_bar"] = bar["ts"]
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
-            "⚠️ <b>نتيجة غير محسومة داخل شمعة واحدة</b>\n"
-            f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-            f"الصفقة {trade['side']} دخول {num(trade['entry'])}: الشمعة لمست وقف الخسارة وهدفاً واحداً أو أكثر، "
-            "ولا يمكن معرفة أيهما حدث أولاً من بيانات OHLC؛ لم نحتسبها ربحاً أو خسارة."
+            "⚠️ نتيجة الصفقة غير محسومة داخل شمعة واحدة\n\n"
+            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
         )
         return
     if stopped:
@@ -511,10 +508,8 @@ def process_bar_for_trade(trade, bar, events):
         stop_pips = stop_points * 10
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
-            f"{outcome}\n🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-            f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | "
-            f"الاستوب: {num(trade['stop_loss'])} | أفضل هدف سابق: {trade.get('highest_target', 0)}/{trade.get('target_count', 3)}\n"
-            f"فرق السعر: {num(stop_distance)} | 🛑 {stop_pips} Pips = {stop_points} Points ❌"
+            f"🛑 Stop Loss: {stop_pips:g} Pips ❌\n\n"
+            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
         )
         return
     # Multiple targets can be crossed in one candle; record every reached level.
@@ -532,19 +527,15 @@ def process_bar_for_trade(trade, bar, events):
             pips = points * 10
             trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
-                "🎯 <b>تم هدفك بنجاح</b>\n"
-                f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-                f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
-                f"فرق السعر من الدخول: {num(distance)}\n\n"
-                f"{pips} Pips = {points} Points ✅🔥"
+                "🎯 تم هدفك بنجاح ✅\n\n"
+                f"{pips:g} Pips = {points:g} Points ✅🔥\n\n"
+                f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
             )
         else:
             trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
-                f"🎯 <b>تم تحقيق الهدف TP{idx}</b>\n"
-                f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-                f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])} | الهدف: {num(target_price)}\n"
-                f"فرق السعر من الدخول: {num(distance)}"
+                f"🎯 تم تحقيق الهدف TP{idx} ✅\n\n"
+                f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
             )
     if trade.get("highest_target", 0) >= target_count:
         trade["status"] = "WIN_TP1" if target_count == 1 else "WIN_TP3"
@@ -556,9 +547,8 @@ def process_bar_for_trade(trade, bar, events):
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         target_label = "TP1" if target_count == 1 else "TP3"
         events.append(
-            f"🏆 <b>اكتملت الصفقة عند الهدف {target_label}.</b>\n"
-            f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\n"
-            f"صافي النتيجة: +{num(trade['result_delta'])} نقطة"
+            "🏆 اكتملت الصفقة بنجاح ✅\n\n"
+            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
         )
     else:
         trade["last_checked_bar"] = bar["ts"]
@@ -658,10 +648,8 @@ def main():
                     trade["cancel_reason"] = str(cancel_request.get("reason") or "إلغاء يدوي من الإدارة")
                     trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
                     events.append(
-                        "🚫 <b>تم إلغاء الصفقة ❌</b>\\n"
-                        f"🆔 رقم الصفقة: <code>{html.escape(trade_id)}</code>\\n"
-                        f"الاتجاه: {trade['side']} | الدخول: {num(trade['entry'])}\\n"
-                        f"السبب: {cancel_reason}"
+                        "🚫 تم إلغاء الصفقة ❌\n\n"
+                        f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
                     )
                     cancelled_count += 1
             state["last_cancel_request"] = cancel_request_id
@@ -849,7 +837,7 @@ def main():
                 "تم تفعيل الصفقة" in event
                 or "تم إلغاء الصفقة" in event
                 or "تم هدفك بنجاح" in event
-                or "تم ضرب وقف الخسارة" in event
+                or "Stop Loss:" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
                 or "تم تفعيل حماية رأس المال" in event
             )
