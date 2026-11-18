@@ -146,7 +146,7 @@ def load_state():
         pass
     return {
         "last_signal_key": None, "last_bar_ts": 0, "active_trades": [],
-        "closed_trades": [], "last_daily_yemen_day": None,
+        "closed_trades": [], "next_trade_number": 1, "last_daily_yemen_day": None,
         "last_weekly_key": None, "last_monthly_key": None,
         "last_error": None, "last_quote_warning": None
     }
@@ -489,7 +489,7 @@ def process_bar_for_trade(trade, bar, events):
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
             "🟢 تم تفعيل الصفقة ✅\n\n"
-            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
         )
         # Do not infer TP/SL ordering from the same one-minute candle that
         # first activated the setup; begin outcome monitoring on the next bar.
@@ -510,7 +510,7 @@ def process_bar_for_trade(trade, bar, events):
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
             "⚠️ نتيجة الصفقة غير محسومة داخل شمعة واحدة\n\n"
-            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
         )
         return
     if stopped:
@@ -529,8 +529,9 @@ def process_bar_for_trade(trade, bar, events):
         stop_pips = stop_points * 10
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
         events.append(
+            "🎯 تم ضرب استوب ❌\n\n"
             f"🛑 Stop Loss: {stop_pips:g} Pips ❌\n\n"
-            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
         )
         return
     # Multiple targets can be crossed in one candle; record every reached level.
@@ -550,13 +551,13 @@ def process_bar_for_trade(trade, bar, events):
             events.append(
                 "🎯 تم هدفك بنجاح ✅\n\n"
                 f"{pips:g} Pips = {points:g} Points ✅🔥\n\n"
-                f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+                f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
             )
         else:
             trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
             events.append(
                 f"🎯 تم تحقيق الهدف TP{idx} ✅\n\n"
-                f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+                f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
             )
     if trade.get("highest_target", 0) >= target_count:
         trade["status"] = "WIN_TP1" if target_count == 1 else "WIN_TP3"
@@ -569,7 +570,7 @@ def process_bar_for_trade(trade, bar, events):
         target_label = "TP1" if target_count == 1 else "TP3"
         events.append(
             "🏆 اكتملت الصفقة بنجاح ✅\n\n"
-            f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
         )
     else:
         trade["last_checked_bar"] = bar["ts"]
@@ -646,6 +647,24 @@ def main():
         active = state.setdefault("active_trades", [])
         closed = state.setdefault("closed_trades", [])
 
+        # Migrate legacy hash IDs to permanent sequential numbers exactly once.
+        known_trades = sorted(
+            active + closed,
+            key=lambda item: item.get("created_at") or item.get("signal_updated_utc") or ""
+        )
+        next_number = max(1, int(state.get("next_trade_number", 1) or 1))
+        for known_trade in known_trades:
+            number = known_trade.get("trade_number")
+            if not isinstance(number, int) or number < 1:
+                number = next_number
+                known_trade["trade_number"] = number
+                next_number += 1
+            known_trade["trade_id"] = str(number)
+        state["next_trade_number"] = max(
+            next_number,
+            max((int(item.get("trade_number", 0)) for item in known_trades), default=0) + 1
+        )
+
         # A unique timestamp in cancel_trade.json requests one manual cancellation.
         # Only PENDING setups are cancelled; already activated trades are not closed
         # because cancellation is not proof of execution/closure at the broker.
@@ -670,7 +689,7 @@ def main():
                     trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
                     events.append(
                         "🚫 تم إلغاء الصفقة ❌\n\n"
-                        f"رقم الصفقة: <code>{html.escape(trade_id)}</code>"
+                        f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
                     )
                     cancelled_count += 1
             state["last_cancel_request"] = cancel_request_id
@@ -721,7 +740,9 @@ def main():
             max_live = controls["max_concurrent_trades"]
             if not existing and not same_candle_setup and len(live_trades) < max_live:
                 trade = {
-                    "signal_key": current_key, "trade_id": current_key[:12], "side": signal,
+                    "signal_key": current_key,
+                    "trade_number": int(state["next_trade_number"]),
+                    "trade_id": str(state["next_trade_number"]), "side": signal,
                     "entry": round(float(data["entry"]), 2),
                     "stop_loss": round(float(data["entry"]) - float(controls["trade_stop_points"]) if signal == "BUY" else float(data["entry"]) + float(controls["trade_stop_points"]), 2),
                     "targets": [round(float(data["entry"]) + float(controls["trade_target_points"]) if signal == "BUY" else float(data["entry"]) - float(controls["trade_target_points"]), 2)],
@@ -734,6 +755,7 @@ def main():
                 }
                 trade["quality_score"] = int(data.get("quality_score", 0))
                 active.append(trade)
+                state["next_trade_number"] = int(state["next_trade_number"]) + 1
                 trade_to_publish = data
                 state["last_signal_key"] = current_key
                 print(f"NEW_TRADE_REGISTERED: concurrent={len(live_trades) + 1}/{max_live}; quality={trade['quality_score']}/100")
@@ -850,7 +872,8 @@ def main():
                     f"🔴 الدخول: {num(published_trade['entry'])}\n"
                     f"🎯 هدفك: {num(published_trade['targets'][0])}\n"
                     f"🛑 استوبك: {num(published_trade['stop_loss'])}\n\n"
-                    f"{historical_success_rate(state)}"
+                    f"{historical_success_rate(state)}\n\n"
+                    f"🆔 رقم الصفقة: ( {html.escape(str(published_trade['trade_number']))} )"
                 )
             else:
                 message = (
@@ -858,7 +881,8 @@ def main():
                     f"🟢 الدخول: {num(published_trade['entry'])}\n"
                     f"🎯 هدفك: {num(published_trade['targets'][0])}\n"
                     f"🛑 استوبك: {num(published_trade['stop_loss'])}\n\n"
-                    f"{historical_success_rate(state)}"
+                    f"{historical_success_rate(state)}\n\n"
+                    f"🆔 رقم الصفقة: ( {html.escape(str(published_trade['trade_number']))} )"
                 )
             send_telegram(message)
             messages_sent += 1
