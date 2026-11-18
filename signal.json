@@ -3,47 +3,95 @@
   "market_proxy": "GC=F",
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
-  "signal": "WAIT",
-  "reason": "تم منع إشارة SELL: السعر ابتعد عن EMA20 بمقدار 1.29 ATR؛ لا نطارد الحركة.",
-  "price": 0,
-  "entry": null,
-  "stop_loss": null,
-  "take_profit_1": null,
-  "take_profit_2": null,
-  "take_profit_3": null,
-  "candle_time": "2026-11-18T11:15:00+00:00",
-  "updated_utc": "2026-11-18T11:33:04.555574+00:00",
-  "execution_mode": "SIGNALS_ONLY",
-  "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
+  "signal": "SELL",
+  "reason": "توافق H4 وH1 وM15 مع زخم غير مستنفد، وعدم ابتعاد مفرط عن EMA20.",
+  "price": 3771.3,
+  "entry": 3771.3,
+  "stop_loss": 3789.34,
+  "take_profit_1": 3753.26,
+  "take_profit_2": 3735.22,
+  "take_profit_3": 3717.18,
+  "atr_14": 7.41,
+  "support_20": 3759.5,
+  "resistance_20": 3788.6,
+  "rsi14_m15": 44.33,
+  "ema20_extension_atr": 0.4,
+  "quality_score": 85,
+  "quality_components": {
+    "توافق الاتجاهات": 30,
+    "زخم RSI": 15,
+    "عدم مطاردة السعر": 15,
+    "البنية السعرية": 10,
+    "المساحة إلى المستوى المقابل": 15,
+    "رصد سحب السيولة المتوافق": 0
+  },
+  "liquidity_sweep": {
+    "bullish_sweep": false,
+    "bearish_sweep": false,
+    "swept_low": null,
+    "swept_high": null,
+    "note": "رصد ذيل كاسر عاد وأغلق داخل البنية؛ إشارة مساعدة وليست إثباتاً لنية صانع السوق."
+  },
+  "signal_mode": "TREND_CONTINUATION",
   "timeframes": {
     "M15": {
       "trend": "SELL",
-      "price": 3765.10009765625,
-      "ema20": 3776.0983943159044,
-      "ema50": 3794.145150729897,
-      "rsi14": 35.80026379395389,
-      "candle_time": "2026-11-18T11:15:00+00:00"
+      "price": 3771.300048828125,
+      "ema20": 3774.262332682604,
+      "ema50": 3790.6521857383063,
+      "rsi14": 44.326022256108786,
+      "candle_time": "2026-11-18T12:15:00+00:00"
     },
     "H1": {
       "trend": "SELL",
-      "price": 3775.39990234375,
-      "ema20": 3810.656334208514,
-      "ema50": 3843.2083788070645,
-      "rsi14": 26.93360886854215,
-      "candle_time": "2026-11-18T11:00:00+00:00"
+      "price": 3766.5,
+      "ema20": 3806.435825402293,
+      "ema50": 3840.198639220158,
+      "rsi14": 24.713899716033012,
+      "candle_time": "2026-11-18T12:00:00+00:00"
     },
     "H4": {
       "trend": "SELL",
-      "price": 3776.0,
-      "ema20": 3869.840181568831,
-      "ema50": 3933.1735915618606,
-      "rsi14": 24.05598282919283,
-      "candle_time": "2026-11-18T08:00:00+00:00"
+      "price": 3766.5,
+      "ema20": 3859.995048968781,
+      "ema50": 3926.6294405961926,
+      "rsi14": 22.994646666101474,
+      "candle_time": "2026-11-18T12:00:00+00:00"
     },
     "anti_chase": {
-      "extension_atr": 1.29,
+      "extension_atr": 0.4,
       "maximum_allowed_atr": 1.25,
-      "status": "BLOCKED_OVEREXTENDED"
+      "status": "PASSED"
+    },
+    "structure": {
+      "mode": "TREND_CONTINUATION",
+      "break": {
+        "confirmed": false,
+        "level": 3760.7
+      }
+    },
+    "liquidity_sweep": {
+      "bullish_sweep": false,
+      "bearish_sweep": false,
+      "swept_low": null,
+      "swept_high": null,
+      "note": "رصد ذيل كاسر عاد وأغلق داخل البنية؛ إشارة مساعدة وليست إثباتاً لنية صانع السوق."
+    },
+    "quality_score": {
+      "score": 85,
+      "components": {
+        "توافق الاتجاهات": 30,
+        "زخم RSI": 15,
+        "عدم مطاردة السعر": 15,
+        "البنية السعرية": 10,
+        "المساحة إلى المستوى المقابل": 15,
+        "رصد سحب السيولة المتوافق": 0
+      },
+      "meaning": "درجة جودة فنية تقديرية من 100 وليست احتمال نجاح إحصائياً."
     }
-  }
+  },
+  "candle_time": "2026-11-18T12:15:00+00:00",
+  "updated_utc": "2026-11-18T12:34:58.931172+00:00",
+  "execution_mode": "SIGNALS_ONLY",
+  "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. GC=F سعر عقود COMEX استرشادي وقد يختلف عن XAUUSD لدى وسيطك؛ تحقق من السعر وإدارة المخاطر."
 }
