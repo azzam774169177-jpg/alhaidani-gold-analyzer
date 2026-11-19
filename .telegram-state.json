@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "db3fd24ae227d4e5599a87919a66f89c9b728d7ad65da5b046f67108495c6636",
-  "last_bar_ts": 1795070401,
+  "last_signal_key": "b720360e7e3197f0d54a013639cdc29f759c4f437ae8641100a60f739e47dd60",
+  "last_bar_ts": 1795075470,
   "active_trades": [
     {
       "signal_key": "ea13e749eee49c5913d2cd85e195c511a1a12c337505b08a07f63f656fe2705d",
@@ -19,29 +19,9 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795070401,
+      "last_checked_bar": 1795075470,
       "quality_score": 75,
       "activated_at": "2026-11-19T05:38:00+00:00"
-    },
-    {
-      "signal_key": "db3fd24ae227d4e5599a87919a66f89c9b728d7ad65da5b046f67108495c6636",
-      "trade_number": 13,
-      "trade_id": "13",
-      "side": "SELL",
-      "entry": 3732.6,
-      "stop_loss": 3742.6,
-      "targets": [
-        3722.6
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-19T06:50:02.356381+00:00",
-      "candle_time": "2026-11-19T06:30:00+00:00",
-      "created_at": "2026-11-19T06:50:02.891016+00:00",
-      "status": "PENDING",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1795070401,
-      "quality_score": 75
     }
   ],
   "closed_trades": [
@@ -323,6 +303,30 @@
       "activated_at": "2026-11-19T05:00:00+00:00",
       "closed_at": "2026-11-19T05:06:00+00:00",
       "close_price": 3734.6,
+      "result_delta": -10.0
+    },
+    {
+      "signal_key": "db3fd24ae227d4e5599a87919a66f89c9b728d7ad65da5b046f67108495c6636",
+      "trade_number": 13,
+      "trade_id": "13",
+      "side": "SELL",
+      "entry": 3732.6,
+      "stop_loss": 3742.6,
+      "targets": [
+        3722.6
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-19T06:50:02.356381+00:00",
+      "candle_time": "2026-11-19T06:30:00+00:00",
+      "created_at": "2026-11-19T06:50:02.891016+00:00",
+      "status": "LOSS",
+      "highest_target": 0,
+      "target_hit_times": {},
+      "last_checked_bar": 1795073040,
+      "quality_score": 75,
+      "activated_at": "2026-11-19T06:41:00+00:00",
+      "closed_at": "2026-11-19T07:24:00+00:00",
+      "close_price": 3742.6,
       "result_delta": -10.0
     }
   ],
