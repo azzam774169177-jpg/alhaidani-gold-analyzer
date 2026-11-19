@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "f9c19bf68da9b557b53d7ccefbddee761514b17a59ee974b56f8b651bd9c4862",
-  "last_bar_ts": 1795083685,
+  "last_signal_key": "3f50e28810f8eaa5ba7fa8b2db4a6461066951730f2e8f98da7bf4e90776b191",
+  "last_bar_ts": 1795087225,
   "active_trades": [
     {
       "signal_key": "59c32366059c1c62bf8f16bd2a4eddf57eed9550f7ba08c96ab47e2426a60d8c",
@@ -19,7 +19,7 @@
       "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795083685,
+      "last_checked_bar": 1795087225,
       "quality_score": 80,
       "activated_at": "2026-11-19T09:19:00+00:00"
     },
@@ -37,11 +37,12 @@
       "signal_updated_utc": "2026-11-19T10:31:27.953938+00:00",
       "candle_time": "2026-11-19T10:15:00+00:00",
       "created_at": "2026-11-19T10:31:28.479995+00:00",
-      "status": "PENDING",
+      "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795083685,
-      "quality_score": 70
+      "last_checked_bar": 1795087225,
+      "quality_score": 70,
+      "activated_at": "2026-11-19T10:23:00+00:00"
     }
   ],
   "closed_trades": [
