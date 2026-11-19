@@ -1,29 +1,7 @@
 {
-  "last_signal_key": "2357b33246aeb46e7984b40b3d2d2db0140d1a8f1561d4f82191310c4248afb0",
-  "last_bar_ts": 1795117572,
-  "active_trades": [
-    {
-      "signal_key": "2357b33246aeb46e7984b40b3d2d2db0140d1a8f1561d4f82191310c4248afb0",
-      "trade_number": 19,
-      "trade_id": "19",
-      "side": "SELL",
-      "entry": 3682.7,
-      "stop_loss": 3692.7,
-      "targets": [
-        3672.7
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-19T18:52:37.520434+00:00",
-      "candle_time": "2026-11-19T18:30:00+00:00",
-      "created_at": "2026-11-19T18:52:38.227546+00:00",
-      "status": "ACTIVE",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1795117572,
-      "quality_score": 80,
-      "activated_at": "2026-11-19T18:59:00+00:00"
-    }
-  ],
+  "last_signal_key": "5cf001a85f925f487012b2c2b8cf8c4ec5066c93513b22f1eae5f9ee4b6a8825",
+  "last_bar_ts": 1795120902,
+  "active_trades": [],
   "closed_trades": [
     {
       "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
@@ -483,6 +461,32 @@
       "activated_at": "2026-11-19T17:44:00+00:00",
       "closed_at": "2026-11-19T19:04:00+00:00",
       "close_price": 3677.0,
+      "result_delta": 10.0
+    },
+    {
+      "signal_key": "2357b33246aeb46e7984b40b3d2d2db0140d1a8f1561d4f82191310c4248afb0",
+      "trade_number": 19,
+      "trade_id": "19",
+      "side": "SELL",
+      "entry": 3682.7,
+      "stop_loss": 3692.7,
+      "targets": [
+        3672.7
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-19T18:52:37.520434+00:00",
+      "candle_time": "2026-11-19T18:30:00+00:00",
+      "created_at": "2026-11-19T18:52:38.227546+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-19T19:47:00+00:00"
+      },
+      "last_checked_bar": 1795117620,
+      "quality_score": 80,
+      "activated_at": "2026-11-19T18:59:00+00:00",
+      "closed_at": "2026-11-19T19:47:00+00:00",
+      "close_price": 3672.7,
       "result_delta": 10.0
     }
   ],
