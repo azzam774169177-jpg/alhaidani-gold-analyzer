@@ -835,18 +835,23 @@ def main():
         day_key = yday.isoformat()
         trades_all = state["closed_trades"] + state["active_trades"]
         report_events = []
-        # Send the completed daily report at 23:55 Yemen time, after the trading day.
-        if local_now.hour == 23 and local_now.minute >= 55 and state.get("last_daily_yemen_day") != day_key:
-            start = datetime.combine(yday, datetime.min.time(), YEMEN).astimezone(timezone.utc)
+        # Daily report: send at/after 23:55 Yemen time, or on the first
+        # workflow run after midnight if the 23:55-23:59 window was missed.
+        report_day = yday if (local_now.hour == 23 and local_now.minute >= 55) else (yday - timedelta(days=1))
+        report_day_key = report_day.isoformat()
+        if state.get("last_daily_yemen_day") != report_day_key:
+            start = datetime.combine(report_day, datetime.min.time(), YEMEN).astimezone(timezone.utc)
             end = start + timedelta(days=1)
             report_events.append(summarize(trades_all, start, end, "جرد نتائج اليوم"))
-            state["last_daily_yemen_day"] = day_key
-        # Trading-week report: Friday 23:55 Yemen time, Monday through Friday.
-        week_key = f"{yday.isocalendar().year}-W{yday.isocalendar().week:02d}"
-        if yday.weekday() == 4 and local_now.hour == 23 and local_now.minute >= 55 and state.get("last_weekly_key") != week_key:
-            start_day = yday - timedelta(days=4)
+            state["last_daily_yemen_day"] = report_day_key
+
+        # Weekly report: Friday at/after 23:55, or first run on Saturday.
+        report_week_day = yday if (yday.weekday() == 4 and local_now.hour == 23 and local_now.minute >= 55) else (yday - timedelta(days=1))
+        week_key = f"{report_week_day.isocalendar().year}-W{report_week_day.isocalendar().week:02d}"
+        if report_week_day.weekday() == 4 and state.get("last_weekly_key") != week_key:
+            start_day = report_week_day - timedelta(days=4)
             start = datetime.combine(start_day, datetime.min.time(), YEMEN).astimezone(timezone.utc)
-            end = datetime.combine(yday + timedelta(days=1), datetime.min.time(), YEMEN).astimezone(timezone.utc)
+            end = datetime.combine(report_week_day + timedelta(days=1), datetime.min.time(), YEMEN).astimezone(timezone.utc)
             report_events.append(summarize(trades_all, start, end, "جرد نتائج الأسبوع"))
             state["last_weekly_key"] = week_key
         month_key = f"{yday.year}-{yday.month:02d}"
