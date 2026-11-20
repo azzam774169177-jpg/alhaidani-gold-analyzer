@@ -4,46 +4,41 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
   "signal": "WAIT",
-  "reason": "تم منع إشارة SELL: السعر ابتعد عن EMA20 بمقدار 1.39 ATR؛ لا نطارد الحركة.",
+  "reason": "تعارض أو عدم اكتمال توافق H1 وM15؛ لا توجد إشارة مؤكدة.",
   "price": 0,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "candle_time": "2026-11-20T13:15:00+00:00",
-  "updated_utc": "2026-11-20T13:45:00.065479+00:00",
+  "candle_time": "2026-11-20T14:15:00+00:00",
+  "updated_utc": "2026-11-20T14:40:11.043858+00:00",
   "execution_mode": "SIGNALS_ONLY",
   "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
   "timeframes": {
     "M15": {
-      "trend": "SELL",
-      "price": 3560.199951171875,
-      "ema20": 3574.6524834633874,
-      "ema50": 3582.0315616362486,
-      "rsi14": 41.24692092590681,
-      "candle_time": "2026-11-20T13:15:00+00:00"
+      "trend": "NEUTRAL",
+      "price": 3570.0,
+      "ema20": 3573.4117754304307,
+      "ema50": 3580.335955366874,
+      "rsi14": 48.07719497988803,
+      "candle_time": "2026-11-20T14:15:00+00:00"
     },
     "H1": {
       "trend": "SELL",
-      "price": 3574.300048828125,
-      "ema20": 3600.3238061284937,
-      "ema50": 3667.49088447739,
-      "rsi14": 36.44377149313732,
-      "candle_time": "2026-11-20T13:00:00+00:00"
+      "price": 3573.5,
+      "ema20": 3597.756154159472,
+      "ema50": 3663.797431011072,
+      "rsi14": 36.3188660240015,
+      "candle_time": "2026-11-20T14:00:00+00:00"
     },
     "H4": {
       "trend": "SELL",
       "price": 3575.699951171875,
-      "ema20": 3711.5657078166764,
-      "ema50": 3825.5737209963168,
-      "rsi14": 20.404932625110888,
+      "ema20": 3711.585104072354,
+      "ema50": 3825.5885813614423,
+      "rsi14": 20.443985383596115,
       "candle_time": "2026-11-20T12:00:00+00:00"
-    },
-    "anti_chase": {
-      "extension_atr": 1.39,
-      "maximum_allowed_atr": 1.25,
-      "status": "BLOCKED_OVEREXTENDED"
     }
   }
 }
