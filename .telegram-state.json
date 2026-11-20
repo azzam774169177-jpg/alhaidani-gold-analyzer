@@ -1,28 +1,7 @@
 {
-  "last_signal_key": "f99b65b31fa8d52e29124e12f4d46fdbc621d3b3f049615b2f2c0d797b7fdf7b",
-  "last_bar_ts": 1795192270,
-  "active_trades": [
-    {
-      "signal_key": "f99b65b31fa8d52e29124e12f4d46fdbc621d3b3f049615b2f2c0d797b7fdf7b",
-      "trade_number": 22,
-      "trade_id": "22",
-      "side": "SELL",
-      "entry": 3543.8,
-      "stop_loss": 3553.8,
-      "targets": [
-        3533.8
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-20T16:41:11.690401+00:00",
-      "candle_time": "2026-11-20T16:15:00+00:00",
-      "created_at": "2026-11-20T16:41:12.260964+00:00",
-      "status": "PENDING",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1795192270,
-      "quality_score": 70
-    }
-  ],
+  "last_signal_key": "013bc98fd1be224dc19d0b542d76bcd163a89a0877b96b7ea09e1cb1e3fffdf3",
+  "last_bar_ts": 1795195891,
+  "active_trades": [],
   "closed_trades": [
     {
       "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
@@ -559,6 +538,32 @@
       "closed_at": "2026-11-20T13:06:00+00:00",
       "close_price": 3581.9,
       "result_delta": -10.0
+    },
+    {
+      "signal_key": "f99b65b31fa8d52e29124e12f4d46fdbc621d3b3f049615b2f2c0d797b7fdf7b",
+      "trade_number": 22,
+      "trade_id": "22",
+      "side": "SELL",
+      "entry": 3543.8,
+      "stop_loss": 3553.8,
+      "targets": [
+        3533.8
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-20T16:41:11.690401+00:00",
+      "candle_time": "2026-11-20T16:15:00+00:00",
+      "created_at": "2026-11-20T16:41:12.260964+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-20T17:17:00+00:00"
+      },
+      "last_checked_bar": 1795195020,
+      "quality_score": 70,
+      "activated_at": "2026-11-20T16:32:00+00:00",
+      "closed_at": "2026-11-20T17:17:00+00:00",
+      "close_price": 3533.8,
+      "result_delta": 10.0
     }
   ],
   "last_daily_yemen_day": "2026-11-19",
