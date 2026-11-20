@@ -1,26 +1,26 @@
 {
-  "last_signal_key": "19027382587800ffe3324064da78cbaf7593dd4eb4187e0cc550d5e25a1f168b",
-  "last_bar_ts": 1795206256,
+  "last_signal_key": "46ce2f47c7b484bdffd90fc20f64b5597c18f8e1d880023d3d4a1af6996dd2cf",
+  "last_bar_ts": 1795209463,
   "active_trades": [
     {
-      "signal_key": "19027382587800ffe3324064da78cbaf7593dd4eb4187e0cc550d5e25a1f168b",
-      "trade_number": 23,
-      "trade_id": "23",
+      "signal_key": "46ce2f47c7b484bdffd90fc20f64b5597c18f8e1d880023d3d4a1af6996dd2cf",
+      "trade_number": 24,
+      "trade_id": "24",
       "side": "SELL",
-      "entry": 3516.4,
-      "stop_loss": 3526.4,
+      "entry": 3519.3,
+      "stop_loss": 3529.3,
       "targets": [
-        3506.4
+        3509.3
       ],
       "target_count": 1,
-      "signal_updated_utc": "2026-11-20T20:34:19.392019+00:00",
-      "candle_time": "2026-11-20T20:15:00+00:00",
-      "created_at": "2026-11-20T20:34:19.927463+00:00",
+      "signal_updated_utc": "2026-11-20T21:27:58.438853+00:00",
+      "candle_time": "2026-11-20T21:00:00+00:00",
+      "created_at": "2026-11-20T21:27:59.280856+00:00",
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795206256,
-      "quality_score": 70
+      "last_checked_bar": 1795209463,
+      "quality_score": 75
     }
   ],
   "closed_trades": [
@@ -585,16 +585,42 @@
       "closed_at": "2026-11-20T17:17:00+00:00",
       "close_price": 3533.8,
       "result_delta": 10.0
+    },
+    {
+      "signal_key": "19027382587800ffe3324064da78cbaf7593dd4eb4187e0cc550d5e25a1f168b",
+      "trade_number": 23,
+      "trade_id": "23",
+      "side": "SELL",
+      "entry": 3516.4,
+      "stop_loss": 3526.4,
+      "targets": [
+        3506.4
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-20T20:34:19.392019+00:00",
+      "candle_time": "2026-11-20T20:15:00+00:00",
+      "created_at": "2026-11-20T20:34:19.927463+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-20T20:31:00+00:00"
+      },
+      "last_checked_bar": 1795206660,
+      "quality_score": 70,
+      "activated_at": "2026-11-20T20:25:00+00:00",
+      "closed_at": "2026-11-20T20:31:00+00:00",
+      "close_price": 3506.4,
+      "result_delta": 10.0
     }
   ],
-  "last_daily_yemen_day": "2026-11-19",
+  "last_daily_yemen_day": "2026-11-20",
   "last_weekly_key": "2026-W47",
   "last_monthly_key": null,
   "last_error": null,
   "last_quote_warning": null,
-  "last_announced_key": "19027382587800ffe3324064da78cbaf7593dd4eb4187e0cc550d5e25a1f168b",
+  "last_announced_key": "46ce2f47c7b484bdffd90fc20f64b5597c18f8e1d880023d3d4a1af6996dd2cf",
   "announced_economic_events": [],
   "daily_news_summary_date": "2026-11-20",
   "announced_economic_events_5m": [],
-  "next_trade_number": 24
+  "next_trade_number": 25
 }
