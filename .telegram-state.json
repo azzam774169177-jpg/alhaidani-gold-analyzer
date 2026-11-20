@@ -1,7 +1,28 @@
 {
-  "last_signal_key": "390c8c755c7b2bfaab1ac5c7297af0fd66d7cb128b52260e7a4f057549a56b79",
-  "last_bar_ts": 1795174703,
-  "active_trades": [],
+  "last_signal_key": "5c35069f7eb1536241bc1aced2c951e12f41ba972651253dc52e95e2fe455225",
+  "last_bar_ts": 1795176740,
+  "active_trades": [
+    {
+      "signal_key": "5c35069f7eb1536241bc1aced2c951e12f41ba972651253dc52e95e2fe455225",
+      "trade_number": 21,
+      "trade_id": "21",
+      "side": "SELL",
+      "entry": 3571.9,
+      "stop_loss": 3581.9,
+      "targets": [
+        3561.9
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-20T12:22:28.393530+00:00",
+      "candle_time": "2026-11-20T12:00:00+00:00",
+      "created_at": "2026-11-20T12:22:29.177511+00:00",
+      "status": "PENDING",
+      "highest_target": 0,
+      "target_hit_times": {},
+      "last_checked_bar": 1795176740,
+      "quality_score": 80
+    }
+  ],
   "closed_trades": [
     {
       "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
@@ -521,9 +542,9 @@
   "last_monthly_key": null,
   "last_error": null,
   "last_quote_warning": null,
-  "last_announced_key": "fe8e78513d9937de7b4607565d3747fcfe5a718ca6b4e5c784ce052eec5f3fc3",
+  "last_announced_key": "5c35069f7eb1536241bc1aced2c951e12f41ba972651253dc52e95e2fe455225",
   "announced_economic_events": [],
   "daily_news_summary_date": "2026-11-20",
   "announced_economic_events_5m": [],
-  "next_trade_number": 21
+  "next_trade_number": 22
 }
