@@ -115,7 +115,7 @@ def send_telegram(message):
 def load_admin_controls():
     defaults = {
         "signals_paused": False, "max_concurrent_trades": 3,
-        "max_daily_trades": 10, "daily_net_profit_target_points": 100.0,
+        "max_daily_trades": 20, "daily_net_profit_target_points": 100.0,
         "min_quality_score": 65, "trade_target_points": 10.0,
         "trade_stop_points": 10.0, "daily_net_loss_limit_points": 50.0
     }
