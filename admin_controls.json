@@ -2,12 +2,12 @@
   "signals_paused": false,
   "max_concurrent_trades": 3,
   "min_quality_score": 65,
-  "notes": "One TP at +10 gold points and SL at -10 points. Maximum 10 registered trades per Yemen calendar day (not a forced quota). Stop publishing new signals once realized daily net reaches +100 points; stop at -50 net loss. Maximum three concurrent trades; quality threshold 65/100. One gold point equals 1.00 price movement (10 pips).",
+  "notes": "One TP at +10 gold points and SL at -10 points. Maximum 20 registered trades per Yemen calendar day (not a forced quota). Stop publishing new signals once realized daily net reaches +100 points; stop at -50 net loss. Maximum three concurrent trades; quality threshold 65/100. One gold point equals 1.00 price movement (10 pips).",
   "config_version": 4,
   "last_manual_health_check_utc": "2026-11-17T08:13:11.291Z",
   "trade_target_points": 10,
   "trade_stop_points": 10,
   "daily_net_loss_limit_points": 50,
-  "max_daily_trades": 10,
+  "max_daily_trades": 20,
   "daily_net_profit_target_points": 100
 }
