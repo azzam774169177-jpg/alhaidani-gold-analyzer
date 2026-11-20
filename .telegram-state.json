@@ -1,28 +1,7 @@
 {
-  "last_signal_key": "fe8e78513d9937de7b4607565d3747fcfe5a718ca6b4e5c784ce052eec5f3fc3",
-  "last_bar_ts": 1795156467,
-  "active_trades": [
-    {
-      "signal_key": "fe8e78513d9937de7b4607565d3747fcfe5a718ca6b4e5c784ce052eec5f3fc3",
-      "trade_number": 20,
-      "trade_id": "20",
-      "side": "SELL",
-      "entry": 3555.4,
-      "stop_loss": 3565.4,
-      "targets": [
-        3545.4
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-20T06:44:30.869894+00:00",
-      "candle_time": "2026-11-20T06:15:00+00:00",
-      "created_at": "2026-11-20T06:44:31.413023+00:00",
-      "status": "PENDING",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1795156467,
-      "quality_score": 95
-    }
-  ],
+  "last_signal_key": "047f3aee44e267688d1b21a85d2e15fdaa4d8c461d82217c2d1fa382d6e8e81f",
+  "last_bar_ts": 1795161170,
+  "active_trades": [],
   "closed_trades": [
     {
       "signal_key": "bff2bc0c95d89218f1b31b0a7607df87e2e932073072f41b2315afe5267bfa0f",
@@ -508,6 +487,32 @@
       "activated_at": "2026-11-19T18:59:00+00:00",
       "closed_at": "2026-11-19T19:47:00+00:00",
       "close_price": 3672.7,
+      "result_delta": 10.0
+    },
+    {
+      "signal_key": "fe8e78513d9937de7b4607565d3747fcfe5a718ca6b4e5c784ce052eec5f3fc3",
+      "trade_number": 20,
+      "trade_id": "20",
+      "side": "SELL",
+      "entry": 3555.4,
+      "stop_loss": 3565.4,
+      "targets": [
+        3545.4
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-20T06:44:30.869894+00:00",
+      "candle_time": "2026-11-20T06:15:00+00:00",
+      "created_at": "2026-11-20T06:44:31.413023+00:00",
+      "status": "WIN_TP1",
+      "highest_target": 1,
+      "target_hit_times": {
+        "1": "2026-11-20T07:34:00+00:00"
+      },
+      "last_checked_bar": 1795160040,
+      "quality_score": 95,
+      "activated_at": "2026-11-20T06:35:00+00:00",
+      "closed_at": "2026-11-20T07:34:00+00:00",
+      "close_price": 3545.4,
       "result_delta": 10.0
     }
   ],
