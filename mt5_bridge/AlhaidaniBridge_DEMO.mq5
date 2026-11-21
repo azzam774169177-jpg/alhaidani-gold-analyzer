@@ -52,7 +52,7 @@ bool GetSignalTime(const string value, datetime &result)
    string s = StringSubstr(value,0,19);
    StringReplace(s,"T"," ");
    StringReplace(s,"-",".");
-   result = StringToTime(s); // signal timestamps are UTC
+   result = StringToTime(s) - (TimeLocal()-TimeGMT()); // convert parsed local time back to UTC
    return (result > 0);
 }
 
