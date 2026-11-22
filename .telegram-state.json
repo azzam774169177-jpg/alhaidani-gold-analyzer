@@ -1,5 +1,5 @@
 {
-  "last_signal_key": "e96e1aa6f9c31d078e65354ae1587f9a4e1ac684311cf43428df95d24527e077",
+  "last_signal_key": "2037acbecc76d520047d82f617f96ec7dab7decc9fa9224c531b6b51e0dd98f9",
   "last_bar_ts": 1795209463,
   "active_trades": [
     {
@@ -613,14 +613,14 @@
       "result_delta": 10.0
     }
   ],
-  "last_daily_yemen_day": "2026-11-21",
+  "last_daily_yemen_day": "2026-11-22",
   "last_weekly_key": "2026-W47",
   "last_monthly_key": null,
   "last_error": null,
   "last_quote_warning": "quote_stale",
   "last_announced_key": "46ce2f47c7b484bdffd90fc20f64b5597c18f8e1d880023d3d4a1af6996dd2cf",
   "announced_economic_events": [],
-  "daily_news_summary_date": "2026-11-20",
+  "daily_news_summary_date": "2026-11-23",
   "announced_economic_events_5m": [],
   "next_trade_number": 25
 }
