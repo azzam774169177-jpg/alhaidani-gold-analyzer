@@ -4,41 +4,46 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
   "signal": "WAIT",
-  "reason": "تعارض أو عدم اكتمال توافق H1 وM15؛ لا توجد إشارة مؤكدة.",
+  "reason": "تم منع إشارة BUY: السعر ابتعد عن EMA20 بمقدار 1.89 ATR؛ لا نطارد الحركة.",
   "price": 0,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "candle_time": "2026-11-24T00:00:00+00:00",
-  "updated_utc": "2026-11-24T00:19:54.743339+00:00",
+  "candle_time": "2026-11-24T01:30:00+00:00",
+  "updated_utc": "2026-11-24T01:45:17.307905+00:00",
   "execution_mode": "SIGNALS_ONLY",
   "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
   "timeframes": {
     "M15": {
-      "trend": "NEUTRAL",
-      "price": 3626.60009765625,
-      "ema20": 3638.0330224915933,
-      "ema50": 3637.7301921331273,
-      "rsi14": 39.03705822781103,
-      "candle_time": "2026-11-24T00:00:00+00:00"
+      "trend": "BUY",
+      "price": 3671.300048828125,
+      "ema20": 3649.3122521765604,
+      "ema50": 3643.0233180584355,
+      "rsi14": 64.76743845456367,
+      "candle_time": "2026-11-24T01:30:00+00:00"
     },
     "H1": {
-      "trend": "NEUTRAL",
-      "price": 3631.0,
-      "ema20": 3630.186367269449,
-      "ema50": 3630.391180932706,
-      "rsi14": 52.36608621306284,
-      "candle_time": "2026-11-24T00:00:00+00:00"
+      "trend": "BUY",
+      "price": 3667.89990234375,
+      "ema20": 3633.7600899267695,
+      "ema50": 3631.8551430166413,
+      "rsi14": 63.66140639268332,
+      "candle_time": "2026-11-24T01:00:00+00:00"
     },
     "H4": {
       "trend": "NEUTRAL",
-      "price": 3631.0,
-      "ema20": 3646.1350016334977,
-      "ema50": 3751.6218770274736,
-      "rsi14": 43.219049984034555,
+      "price": 3630.60009765625,
+      "ema20": 3646.1053746269326,
+      "ema50": 3751.603472196732,
+      "rsi14": 43.16923148251727,
       "candle_time": "2026-11-24T00:00:00+00:00"
+    },
+    "anti_chase": {
+      "extension_atr": 1.89,
+      "maximum_allowed_atr": 1.25,
+      "status": "BLOCKED_OVEREXTENDED"
     }
   }
 }
