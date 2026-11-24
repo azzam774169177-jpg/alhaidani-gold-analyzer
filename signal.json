@@ -4,44 +4,44 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
   "signal": "WAIT",
-  "reason": "تم منع إشارة SELL: السعر ابتعد عن EMA20 بمقدار 1.61 ATR؛ لا نطارد الحركة.",
+  "reason": "تم منع إشارة SELL: السعر ابتعد عن EMA20 بمقدار 1.58 ATR؛ لا نطارد الحركة.",
   "price": 0,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "candle_time": "2026-11-24T18:00:00+00:00",
-  "updated_utc": "2026-11-24T18:22:51.680545+00:00",
+  "candle_time": "2026-11-24T19:00:00+00:00",
+  "updated_utc": "2026-11-24T19:29:34.317814+00:00",
   "execution_mode": "SIGNALS_ONLY",
   "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
   "timeframes": {
     "M15": {
       "trend": "SELL",
-      "price": 3563.5,
-      "ema20": 3584.5505698909337,
-      "ema50": 3604.707062714302,
-      "rsi14": 32.36109002056541,
-      "candle_time": "2026-11-24T18:00:00+00:00"
+      "price": 3559.800048828125,
+      "ema20": 3575.7140400767503,
+      "ema50": 3597.767600702154,
+      "rsi14": 33.78153588671779,
+      "candle_time": "2026-11-24T19:00:00+00:00"
     },
     "H1": {
       "trend": "SELL",
-      "price": 3566.300048828125,
-      "ema20": 3612.637812987958,
-      "ema50": 3623.1252309088145,
-      "rsi14": 32.996980044642115,
-      "candle_time": "2026-11-24T18:00:00+00:00"
+      "price": 3554.5,
+      "ema20": 3607.068844891003,
+      "ema50": 3620.411152940388,
+      "rsi14": 30.603175247917946,
+      "candle_time": "2026-11-24T19:00:00+00:00"
     },
     "H4": {
       "trend": "SELL",
-      "price": 3568.10009765625,
-      "ema20": 3634.748876818444,
-      "ema50": 3731.12407448795,
-      "rsi14": 35.78276268775039,
+      "price": 3567.800048828125,
+      "ema20": 3634.677074615716,
+      "ema50": 3731.0857716336172,
+      "rsi14": 35.80995615103873,
       "candle_time": "2026-11-24T16:00:00+00:00"
     },
     "anti_chase": {
-      "extension_atr": 1.61,
+      "extension_atr": 1.58,
       "maximum_allowed_atr": 1.25,
       "status": "BLOCKED_OVEREXTENDED"
     }
