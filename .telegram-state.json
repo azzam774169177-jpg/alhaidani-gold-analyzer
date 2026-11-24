@@ -1,28 +1,7 @@
 {
-  "last_signal_key": "d4c6a51eef056e0230933dced5ad6e838079565e9155659b35525a4037ceff81",
-  "last_bar_ts": 1795516173,
+  "last_signal_key": "72108fe9dcf66ee8dc868e169ae067cca279a14920d46bab708abcb812ab6333",
+  "last_bar_ts": 1795519756,
   "active_trades": [
-    {
-      "signal_key": "b0fb9cd3d1b6a74cef31894b433cc29190bff0ac81800a7e53aa742067758a8b",
-      "trade_number": 25,
-      "trade_id": "25",
-      "side": "SELL",
-      "entry": 3616.2,
-      "stop_loss": 3626.2,
-      "targets": [
-        3606.2
-      ],
-      "target_count": 1,
-      "signal_updated_utc": "2026-11-24T09:42:20.757466+00:00",
-      "candle_time": "2026-11-24T09:15:00+00:00",
-      "created_at": "2026-11-24T09:42:21.916948+00:00",
-      "status": "ACTIVE",
-      "highest_target": 0,
-      "target_hit_times": {},
-      "last_checked_bar": 1795516173,
-      "quality_score": 75,
-      "activated_at": "2026-11-24T09:33:00+00:00"
-    },
     {
       "signal_key": "d4c6a51eef056e0230933dced5ad6e838079565e9155659b35525a4037ceff81",
       "trade_number": 26,
@@ -37,11 +16,12 @@
       "signal_updated_utc": "2026-11-24T10:39:38.399890+00:00",
       "candle_time": "2026-11-24T10:15:00+00:00",
       "created_at": "2026-11-24T10:39:39.573068+00:00",
-      "status": "PENDING",
+      "status": "ACTIVE",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795516173,
-      "quality_score": 80
+      "last_checked_bar": 1795519756,
+      "quality_score": 80,
+      "activated_at": "2026-11-24T10:30:00+00:00"
     }
   ],
   "closed_trades": [
@@ -655,6 +635,30 @@
       "activated_at": "2026-11-22T23:10:00+00:00",
       "closed_at": "2026-11-22T23:11:00+00:00",
       "close_price": 3529.3,
+      "result_delta": -10.0
+    },
+    {
+      "signal_key": "b0fb9cd3d1b6a74cef31894b433cc29190bff0ac81800a7e53aa742067758a8b",
+      "trade_number": 25,
+      "trade_id": "25",
+      "side": "SELL",
+      "entry": 3616.2,
+      "stop_loss": 3626.2,
+      "targets": [
+        3606.2
+      ],
+      "target_count": 1,
+      "signal_updated_utc": "2026-11-24T09:42:20.757466+00:00",
+      "candle_time": "2026-11-24T09:15:00+00:00",
+      "created_at": "2026-11-24T09:42:21.916948+00:00",
+      "status": "LOSS",
+      "highest_target": 0,
+      "target_hit_times": {},
+      "last_checked_bar": 1795517940,
+      "quality_score": 75,
+      "activated_at": "2026-11-24T09:33:00+00:00",
+      "closed_at": "2026-11-24T10:59:00+00:00",
+      "close_price": 3626.2,
       "result_delta": -10.0
     }
   ],
