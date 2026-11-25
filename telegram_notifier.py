@@ -159,7 +159,7 @@ def daily_net_points(trades, day_key):
         result = trade.get("result_delta")
         if not closed_at or not isinstance(result, (int, float)):
             continue
-        if trade.get("status") not in ("WIN_TP1", "WIN_TP3", "LOSS", "MIXED_AFTER_TARGET"):
+        if trade.get("status") not in ("WIN_TP1", "WIN_TP3", "WIN_PROTECTED", "LOSS", "MIXED_AFTER_TARGET"):
             continue
         if parse_time(closed_at).astimezone(YEMEN).date().isoformat() == day_key:
             total += float(result)
@@ -469,38 +469,29 @@ def trade_summary_line(trade):
     return f"{side} | دخول {num(trade['entry'])} | أفضل هدف {trade.get('highest_target', 0)}/{target_count} | الحالة: {html.escape(trade['status'])}"
 
 def process_bar_for_trade(trade, bar, events):
+    """Track three targets; lock +5 points after TP1; emit one final result."""
     status = trade.get("status")
     if status not in ("PENDING", "OPEN", "ACTIVE") or bar["ts"] <= trade.get("last_checked_bar", 0):
         return
 
-    # New setups wait for price to reach the entry. Legacy OPEN trades remain
-    # monitored as already activated so existing state is not lost.
     if status == "PENDING":
         entry = float(trade["entry"])
-        reached_entry = (
-            bar["low"] <= entry if trade["side"] == "BUY"
-            else bar["high"] >= entry
-        )
+        reached_entry = bar["low"] <= entry if trade["side"] == "BUY" else bar["high"] >= entry
         trade["last_checked_bar"] = bar["ts"]
         if not reached_entry:
             return
         trade["status"] = "ACTIVE"
         trade["activated_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
-        events.append(
-            "🟢 تم تفعيل الصفقة ✅\n\n"
-            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
-        )
-        # Do not infer TP/SL ordering from the same one-minute candle that
-        # first activated the setup; begin outcome monitoring on the next bar.
+        events.append("🟢 تم تفعيل الصفقة ✅\n\n" + f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )")
         return
 
     next_idx = int(trade.get("highest_target", 0))
     target_count = max(1, min(3, int(trade.get("target_count", 3))))
-    # If this one-minute candle touches the stop and any remaining target,
-    # OHLC data cannot establish which price happened first: classify as ambiguous.
     any_target = any(target_hit(trade, bar, i) for i in range(next_idx, target_count))
     stopped = stop_hit(trade, bar)
+
+    # OHLC cannot prove whether the stop or a target was reached first in one candle.
     if stopped and any_target:
         trade["status"] = "AMBIGUOUS_SL_AND_TP_SAME_CANDLE"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
@@ -508,76 +499,86 @@ def process_bar_for_trade(trade, bar, events):
         trade["ambiguous"] = True
         trade["last_checked_bar"] = bar["ts"]
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
-        events.append(
-            "⚠️ نتيجة الصفقة غير محسومة داخل شمعة واحدة\n\n"
-            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
-        )
+        events.append("⚠️ النتيجة النهائية غير محسومة: الوقف والهدف ظهرا داخل الشمعة نفسها.\n"
+                      + f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )")
         return
+
     if stopped:
-        if trade.get("highest_target", 0) == 0:
-            trade["status"] = "LOSS"
-            outcome = "🛑 <b>تم ضرب وقف الخسارة</b>"
-        else:
-            trade["status"] = "MIXED_AFTER_TARGET"
-            outcome = f"🛑 <b>تم ضرب وقف الخسارة بعد تحقيق TP{trade['highest_target']}</b>"
+        highest = int(trade.get("highest_target", 0))
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         trade["close_price"] = float(trade["stop_loss"])
         trade["result_delta"] = favorable_distance(trade, trade["stop_loss"])
         trade["last_checked_bar"] = bar["ts"]
-        stop_distance = abs(float(trade["stop_loss"]) - float(trade["entry"]))
-        stop_points = stop_distance
-        stop_pips = stop_points * 10
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
+        if highest == 0:
+            trade["status"] = "LOSS"
+            reason = "ضرب وقف الخسارة قبل تحقيق أي هدف"
+        else:
+            trade["status"] = "WIN_PROTECTED"
+            reason = "ضرب وقف تأمين الأرباح"
         events.append(
-            "🎯 تم ضرب استوب ❌\n\n"
-            f"🛑 Stop Loss: {stop_pips:g} Pips ❌\n\n"
-            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
+            "🏆 <b>النتيجة النهائية للصفقة</b>\n"
+            + f"عدد الأهداف المحققة: {highest} من {target_count}.\n"
+            + f"الأرباح/الخسائر الفعلية: {float(trade['result_delta']):+g} نقاط.\n"
+            + f"سبب الإغلاق: {reason}.\n"
+            + "لن تُحتسب أي أهداف بعد إغلاق الصفقة.\n"
+            + f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
         )
         return
-    # Multiple targets can be crossed in one candle; record every reached level.
-    while trade.get("highest_target", 0) < target_count:
+
+    while int(trade.get("highest_target", 0)) < target_count:
         idx = int(trade.get("highest_target", 0))
         if not target_hit(trade, bar, idx):
             break
         idx += 1
         trade["highest_target"] = idx
-        trade["target_hit_times"][str(idx)] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
-        target_price = trade["targets"][idx - 1]
-        distance = abs(float(target_price) - float(trade["entry"]))
+        trade.setdefault("target_hit_times", {})[str(idx)] = datetime.fromtimestamp(
+            bar["ts"], timezone.utc
+        ).isoformat()
         if idx == 1:
-            points = distance
-            pips = points * 10
-            trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
-            events.append(
-                "🎯 تم هدفك بنجاح ✅\n\n"
-                f"{pips:g} Pips = {points:g} Points ✅🔥\n\n"
-                f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
+            entry = float(trade["entry"])
+            lock = float(trade.get("lock_profit_points", 5.0))
+            trade["stop_loss"] = round(
+                entry + lock if trade["side"] == "BUY" else entry - lock, 2
             )
-        else:
-            trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
-            events.append(
-                f"🎯 تم تحقيق الهدف TP{idx} ✅\n\n"
-                f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
-            )
-    if trade.get("highest_target", 0) >= target_count:
-        trade["status"] = "WIN_TP1" if target_count == 1 else "WIN_TP3"
+            trade["locked_profit_points"] = lock
+
+    highest = int(trade.get("highest_target", 0))
+    if highest >= target_count:
+        trade["status"] = "WIN_TP3"
         trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
         final_target = float(trade["targets"][target_count - 1])
         trade["close_price"] = final_target
         trade["result_delta"] = favorable_distance(trade, final_target)
         trade["last_checked_bar"] = bar["ts"]
         trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
-        target_label = "TP1" if target_count == 1 else "TP3"
         events.append(
-            "🏆 اكتملت الصفقة بنجاح ✅\n\n"
-            f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
+            "🏆 <b>النتيجة النهائية للصفقة</b>\n"
+            + f"عدد الأهداف المحققة: {highest} من {target_count}.\n"
+            + f"الأرباح الفعلية: {float(trade['result_delta']):+g} نقاط.\n"
+            + "سبب الإغلاق: الوصول إلى الهدف الثالث.\n"
+            + f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
         )
     else:
+        # If TP1 and the newly installed +5 stop are both in this candle,
+        # candle OHLC cannot prove their order; do not invent a fill.
+        if highest >= 1 and stop_hit(trade, bar):
+            trade["status"] = "AMBIGUOUS_SL_AND_TP_SAME_CANDLE"
+            trade["closed_at"] = datetime.fromtimestamp(bar["ts"], timezone.utc).isoformat()
+            trade["close_price"] = None
+            trade["ambiguous"] = True
+            trade["last_checked_bar"] = bar["ts"]
+            trade_id = trade.setdefault("trade_id", trade.get("signal_key", "legacy")[:12])
+            events.append(
+                "⚠️ النتيجة النهائية غير محسومة: لا يمكن معرفة ترتيب الهدف ووقف التأمين داخل الشمعة.\n"
+                + f"🆔 رقم الصفقة: ( {html.escape(trade_id)} )"
+            )
+            return
         trade["last_checked_bar"] = bar["ts"]
 
 def summarize(trades, start, end, title):
     rows = [t for t in trades if t.get("closed_at") and start <= parse_time(t["closed_at"]) < end]
-    wins = sum(1 for t in rows if t["status"] in ("WIN_TP1", "WIN_TP3"))
+    wins = sum(1 for t in rows if t["status"] in ("WIN_TP1", "WIN_TP3", "WIN_PROTECTED"))
     losses = sum(1 for t in rows if t["status"] == "LOSS")
     mixed = sum(1 for t in rows if t["status"] == "MIXED_AFTER_TARGET")
     ambiguous = sum(1 for t in rows if t["status"] == "AMBIGUOUS_SL_AND_TP_SAME_CANDLE")
@@ -585,7 +586,7 @@ def summarize(trades, start, end, title):
     total = len(rows)
     decided = wins + losses
     rate = (wins / decided * 100) if decided else 0
-    completed = [t for t in rows if t.get("status") in ("WIN_TP1", "WIN_TP3", "LOSS") and isinstance(t.get("result_delta"), (int, float))]
+    completed = [t for t in rows if t.get("status") in ("WIN_TP1", "WIN_TP3", "WIN_PROTECTED", "LOSS") and isinstance(t.get("result_delta"), (int, float))]
     gross_up = sum(max(0.0, float(t["result_delta"])) for t in completed)
     gross_down = sum(min(0.0, float(t["result_delta"])) for t in completed)
     net_delta = gross_up + gross_down
@@ -757,8 +758,10 @@ def main():
                     "trade_id": str(state["next_trade_number"]), "side": signal,
                     "entry": round(float(data["entry"]), 2),
                     "stop_loss": round(float(data["entry"]) - float(controls["trade_stop_points"]) if signal == "BUY" else float(data["entry"]) + float(controls["trade_stop_points"]), 2),
-                    "targets": [round(float(data["entry"]) + float(controls["trade_target_points"]) if signal == "BUY" else float(data["entry"]) - float(controls["trade_target_points"]), 2)],
-                    "target_count": 1,
+                    "targets": [round(float(data["entry"]) + (i + 1) * 10.0 if signal == "BUY" else float(data["entry"]) - (i + 1) * 10.0, 2) for i in range(3)],
+                    "target_count": 3,
+                    "lock_profit_points": 5.0,
+                    "locked_profit_points": 0.0,
                     "signal_updated_utc": updated.isoformat(),
                     "candle_time": data["candle_time"],
                     "created_at": now.isoformat(), "status": "PENDING",
@@ -919,6 +922,7 @@ def main():
             if (
                 "تم تفعيل الصفقة" in event
                 or "تم إلغاء الصفقة" in event
+                or "النتيجة النهائية للصفقة" in event
                 or "تم هدفك بنجاح" in event
                 or "Stop Loss:" in event
                 or "نتيجة غير محسومة داخل شمعة واحدة" in event
