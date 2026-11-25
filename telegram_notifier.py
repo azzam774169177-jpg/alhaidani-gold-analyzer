@@ -758,7 +758,7 @@ def main():
                     "trade_id": str(state["next_trade_number"]), "side": signal,
                     "entry": round(float(data["entry"]), 2),
                     "stop_loss": round(float(data["entry"]) - float(controls["trade_stop_points"]) if signal == "BUY" else float(data["entry"]) + float(controls["trade_stop_points"]), 2),
-                    "targets": [round(float(data["entry"]) + (i + 1) * float(controls["trade_target_points"]) if signal == "BUY" else float(data["entry"]) - (i + 1) * float(controls["trade_target_points"]), 2) for i in range(3)],
+                    "targets": [round(float(data["entry"]) + (i + 1) * 10.0 if signal == "BUY" else float(data["entry"]) - (i + 1) * 10.0, 2) for i in range(3)],
                     "target_count": 3,
                     "lock_profit_points": 5.0,
                     "locked_profit_points": 0.0,
