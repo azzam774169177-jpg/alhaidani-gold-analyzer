@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "bdae936db9e1becef55c34d4f1dfc3f8a120c2e4c497e6fbe0a3351f342c535f",
-  "last_bar_ts": 1795642084,
+  "last_signal_key": "fa18b558cec05c003334f934da157e9a813d8efc33caaa6e1f1221f322c1fe2b",
+  "last_bar_ts": 1795648910,
   "active_trades": [
     {
       "signal_key": "a7dfb2542fed750ed5679cda71e3adcc6e2687ea577b9d5ed55505d5bb42be09",
@@ -19,7 +19,7 @@
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795642084,
+      "last_checked_bar": 1795648910,
       "quality_score": 70
     }
   ],
@@ -765,7 +765,7 @@
   "last_weekly_key": "2026-W47",
   "last_monthly_key": null,
   "last_error": null,
-  "last_quote_warning": "quote_stale",
+  "last_quote_warning": null,
   "last_announced_key": "869b2e099b762d55f6e10920df5a05a859c63d666b2fbce17a10346d5ca88d2d",
   "announced_economic_events": [],
   "daily_news_summary_date": "2026-11-25",
