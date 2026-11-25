@@ -4,41 +4,15 @@
   "data_source": "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)",
   "timeframe": "M15/H1/H4",
   "signal": "WAIT",
-  "reason": "تعارض أو عدم اكتمال توافق H1 وM15؛ لا توجد إشارة مؤكدة.",
+  "reason": "آخر شمعة M15 غير حديثة (3133 ثانية)",
   "price": 0,
   "entry": null,
   "stop_loss": null,
   "take_profit_1": null,
   "take_profit_2": null,
   "take_profit_3": null,
-  "candle_time": "2026-11-25T21:15:00+00:00",
-  "updated_utc": "2026-11-25T21:38:07.808977+00:00",
+  "candle_time": "2026-11-25T22:37:14.388970+00:00",
+  "updated_utc": "2026-11-25T22:37:14.388970+00:00",
   "execution_mode": "SIGNALS_ONLY",
-  "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك.",
-  "timeframes": {
-    "M15": {
-      "trend": "BUY",
-      "price": 3616.300048828125,
-      "ema20": 3570.8522396010935,
-      "ema50": 3550.2797617136634,
-      "rsi14": 70.33069403099861,
-      "candle_time": "2026-11-25T21:15:00+00:00"
-    },
-    "H1": {
-      "trend": "NEUTRAL",
-      "price": 3602.699951171875,
-      "ema20": 3546.9300703628933,
-      "ema50": 3569.614833106184,
-      "rsi14": 60.48183510415823,
-      "candle_time": "2026-11-25T21:00:00+00:00"
-    },
-    "H4": {
-      "trend": "SELL",
-      "price": 3573.89990234375,
-      "ema20": 3583.3061194501706,
-      "ema50": 3682.846330798667,
-      "rsi14": 45.34932024473647,
-      "candle_time": "2026-11-25T20:00:00+00:00"
-    }
-  }
+  "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك."
 }
