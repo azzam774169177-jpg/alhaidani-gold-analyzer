@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "150bd90dd55779545c30176335c210504faa128be08e8b9558c8bf5df992ee6f",
-  "last_bar_ts": 1795630952,
+  "last_signal_key": "80b437a1fac34735ea3ad4e726d89b3615837af007f421e6d8254a1cdd25a151",
+  "last_bar_ts": 1795634751,
   "active_trades": [
     {
       "signal_key": "a7dfb2542fed750ed5679cda71e3adcc6e2687ea577b9d5ed55505d5bb42be09",
@@ -19,7 +19,7 @@
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795630952,
+      "last_checked_bar": 1795634751,
       "quality_score": 70
     }
   ],
