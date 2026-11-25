@@ -1,6 +1,6 @@
 {
-  "last_signal_key": "df8042b125d1623d33f717297f69731620be08aef84301a783824fcc1a489e5b",
-  "last_bar_ts": 1795638217,
+  "last_signal_key": "7d65c2bafdbe4f8031aa8dfae7b3dd6a0b19700898fa4b6343cde4911953678d",
+  "last_bar_ts": 1795642084,
   "active_trades": [
     {
       "signal_key": "a7dfb2542fed750ed5679cda71e3adcc6e2687ea577b9d5ed55505d5bb42be09",
@@ -19,7 +19,7 @@
       "status": "PENDING",
       "highest_target": 0,
       "target_hit_times": {},
-      "last_checked_bar": 1795638217,
+      "last_checked_bar": 1795642084,
       "quality_score": 70
     }
   ],
@@ -761,7 +761,7 @@
       "result_delta": -10.0
     }
   ],
-  "last_daily_yemen_day": "2026-11-24",
+  "last_daily_yemen_day": "2026-11-25",
   "last_weekly_key": "2026-W47",
   "last_monthly_key": null,
   "last_error": null,
