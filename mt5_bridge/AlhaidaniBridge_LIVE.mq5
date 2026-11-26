@@ -41,11 +41,11 @@ bool ReadSignal(string &j)
  if(h==INVALID_HANDLE){Print("Bridge: cannot open Common Files/",SignalFile,". Put signal.json there.");return false;}
  j=""; while(!FileIsEnding(h)) j+=FileReadString(h); FileClose(h); return StringLen(j)>10;
 }
-int OurPosition()
+ulong OurPosition()
 {
  for(int i=PositionsTotal()-1;i>=0;i--){ulong t=PositionGetTicket(i);
-  if(t>0 && PositionGetString(POSITION_SYMBOL)==TradeSymbol && (ulong)PositionGetInteger(POSITION_MAGIC)==MagicNumber)return (int)t;}
- return -1;
+  if(t>0 && PositionGetString(POSITION_SYMBOL)==TradeSymbol && (ulong)PositionGetInteger(POSITION_MAGIC)==MagicNumber)return t;}
+ return 0;
 }
 bool ParseTime(string s,datetime &t)
 {
@@ -95,7 +95,7 @@ void CheckSignal()
  long age=(long)(TimeGMT()-st); if(age<0 || age>MaxSignalAgeSeconds){Print("Blocked stale signal: ",age);return;}
  string id=J(j,"signal_id"); if(id=="")id=sig+"_"+stamp;
  if(id==lastSignalId)return;
- if(OurPosition()>0){ManageTargets();return;}
+ if(OurPosition()!=0){ManageTargets();return;}
  long accountMode=AccountInfoInteger(ACCOUNT_TRADE_MODE);
  bool permitted=(accountMode==ACCOUNT_TRADE_MODE_REAL && EnableLiveTrading) || (accountMode==ACCOUNT_TRADE_MODE_DEMO && EnableDemoTrading);
  if(!permitted){Print("Bridge loaded; execution disabled or account mode not explicitly enabled.");return;}
@@ -116,7 +116,8 @@ void CheckSignal()
  bool ok=(sig=="BUY")?trade.Buy(vol,TradeSymbol,0,sl,t3,"Alhaidani "+id):trade.Sell(vol,TradeSymbol,0,sl,t3,"Alhaidani "+id);
  if(ok && trade.ResultRetcode()==TRADE_RETCODE_DONE)
  {
-  lastSignalId=id; managedTicket=trade.ResultOrder(); tp1Done=false;tp2Done=false;
+  lastSignalId=id; managedTicket=OurPosition(); tp1Done=false;tp2Done=false;
+  if(managedTicket==0){Print("Order accepted but position ticket not found yet; target manager will attach on next poll.");return;}
   GlobalVariableSet("AH711_"+(string)managedTicket+"_T1",t1); GlobalVariableSet("AH711_"+(string)managedTicket+"_T2",t2);
   Print("Order accepted. Three-stage management armed. Verify position ticket and broker execution.");
  } else Print("Order rejected: ",trade.ResultRetcode()," ",trade.ResultRetcodeDescription());
