@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-import yfinance as yf
+import MetaTrader5 as mt5
 
 # PRO multi-timeframe engine. Analysis/signals only; never places broker orders.
-SYMBOL = "XAUUSD=X"  # Yahoo Finance XAU/USD spot reference; not a broker execution feed.
-SOURCE = "XAUUSD=X - Yahoo Finance XAU/USD spot reference quote (not Weltrade broker feed)"
+SYMBOL = "XAUUSD"  # Exact broker symbol from the logged-in Weltrade MT5 terminal.
+SOURCE = "Weltrade MT5 terminal - live broker XAUUSD symbol and M15 candles"
 MIN_BARS = 60
 SWING_WINDOW = 2
 MAX_EMA_EXTENSION_ATR = 1.25
@@ -149,13 +149,23 @@ def detect_liquidity_sweep(candles):
 
 def analyze():
     now = utc_now()
-    raw = yf.download(
-        SYMBOL, period="60d", interval="15m", progress=False,
-        auto_adjust=False, threads=False
-    )
-    if raw.empty:
-        return wait_result("مصدر XAUUSD=X لم يُرجع بيانات حديثة")
-    candles = normalize_columns(raw)
+    # Read the broker's own XAUUSD quotes from the logged-in MT5 terminal.
+    if not mt5.initialize():
+        return wait_result("تعذر الاتصال بمنصة MT5 على هذا الجهاز: " + str(mt5.last_error()))
+    try:
+        if not mt5.symbol_select(SYMBOL, True):
+            return wait_result("رمز XAUUSD غير متاح في حساب Weltrade MT5: " + str(mt5.last_error()))
+        rates = mt5.copy_rates_from_pos(SYMBOL, mt5.TIMEFRAME_M15, 0, 2500)
+        if rates is None or len(rates) == 0:
+            return wait_result("لم تصل شموع XAUUSD من Weltrade MT5: " + str(mt5.last_error()))
+        raw = pd.DataFrame(rates)
+        raw["time"] = pd.to_datetime(raw["time"], unit="s", utc=True)
+        raw = raw.set_index("time").rename(columns={
+            "open": "Open", "high": "High", "low": "Low", "close": "Close"
+        })
+        candles = normalize_columns(raw)
+    finally:
+        mt5.shutdown()
 
     # Yahoo timestamps M15 candles by opening time; discard any still-forming candle.
     candles = candles.loc[candles.index + pd.Timedelta(minutes=15) <= pd.Timestamp(now)]
@@ -310,7 +320,7 @@ def analyze():
         "signal_mode": "REVERSAL_CONFIRMED" if reversal_mode else "TREND_CONTINUATION",
         "timeframes": details, "candle_time": candles.index[-1].isoformat(),
         "updated_utc": now.isoformat(), "execution_mode": "SIGNALS_ONLY",
-        "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. البيانات مرجعية لـ XAU/USD من Yahoo Finance وليست تغذية Weltrade المباشرة؛ تحقق من سعر الوسيط قبل التنفيذ."
+        "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. البيانات مأخوذة من رمز XAUUSD داخل منصة Weltrade MT5 المسجلة الدخول على هذا الجهاز."
     }
 
 
