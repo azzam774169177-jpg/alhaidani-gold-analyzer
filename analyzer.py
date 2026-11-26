@@ -6,8 +6,8 @@ import pandas as pd
 import yfinance as yf
 
 # PRO multi-timeframe engine. Analysis/signals only; never places broker orders.
-SYMBOL = "GC=F"  # Indicative COMEX futures proxy, not broker-executable XAUUSD.
-SOURCE = "GC=F - Yahoo Finance COMEX gold futures indicative quote (not broker feed)"
+SYMBOL = "XAUUSD=X"  # Yahoo Finance XAU/USD spot reference; not a broker execution feed.
+SOURCE = "XAUUSD=X - Yahoo Finance XAU/USD spot reference quote (not Weltrade broker feed)"
 MIN_BARS = 60
 SWING_WINDOW = 2
 MAX_EMA_EXTENSION_ATR = 1.25
@@ -22,13 +22,13 @@ def utc_now():
 def wait_result(reason, candle_time=None, details=None):
     now = utc_now()
     result = {
-        "symbol": "XAUUSD", "market_proxy": SYMBOL, "data_source": SOURCE,
+        "symbol": "XAUUSD", "price_source_symbol": SYMBOL, "data_source": SOURCE,
         "timeframe": "M15/H1/H4", "signal": "WAIT", "reason": reason, "price": 0,
         "entry": None, "stop_loss": None, "take_profit_1": None,
         "take_profit_2": None, "take_profit_3": None,
         "candle_time": candle_time or now.isoformat(),
         "updated_utc": now.isoformat(), "execution_mode": "SIGNALS_ONLY",
-        "notice": "لا يتم فتح صفقات آلياً. السعر استرشادي لعقود COMEX GC=F وليس سعراً تنفيذياً من وسيطك."
+        "notice": "لا يتم فتح صفقات آلياً. السعر مرجعي للذهب الفوري XAU/USD من Yahoo Finance وقد يختلف عن سعر التنفيذ لدى Weltrade."
     }
     if details:
         result["timeframes"] = details
@@ -154,7 +154,7 @@ def analyze():
         auto_adjust=False, threads=False
     )
     if raw.empty:
-        return wait_result("مصدر GC=F لم يُرجع بيانات حديثة")
+        return wait_result("مصدر XAUUSD=X لم يُرجع بيانات حديثة")
     candles = normalize_columns(raw)
 
     # Yahoo timestamps M15 candles by opening time; discard any still-forming candle.
@@ -310,7 +310,7 @@ def analyze():
         "signal_mode": "REVERSAL_CONFIRMED" if reversal_mode else "TREND_CONTINUATION",
         "timeframes": details, "candle_time": candles.index[-1].isoformat(),
         "updated_utc": now.isoformat(), "execution_mode": "SIGNALS_ONLY",
-        "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. GC=F سعر عقود COMEX استرشادي وقد يختلف عن XAUUSD لدى وسيطك؛ تحقق من السعر وإدارة المخاطر."
+        "notice": "إشارة تحليلية فقط ولا تفتح صفقة آلياً. البيانات مرجعية لـ XAU/USD من Yahoo Finance وليست تغذية Weltrade المباشرة؛ تحقق من سعر الوسيط قبل التنفيذ."
     }
 
 
