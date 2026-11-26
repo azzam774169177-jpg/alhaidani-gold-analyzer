@@ -4,3 +4,4 @@ numpy
 opencv-python-headless
 Flask
 gunicorn
+MetaTrader5
