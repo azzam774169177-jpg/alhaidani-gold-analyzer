@@ -10,6 +10,8 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
+from bridge_api import enqueue_command, start_bridge_server
+
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "-1003960644699").strip()
 CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "").strip()
@@ -297,6 +299,11 @@ def handle_message(message: dict):
             command["telegram_chat_id"] = str(chat.get("id"))
             command["telegram_message_id"] = message.get("message_id")
             print("AZZAM711_TITANS_COMMAND_PARSED " + json.dumps(command, ensure_ascii=False), flush=True)
+            try:
+                enqueue_command(command)
+                print("AZZAM711_TITANS_COMMAND_QUEUED", flush=True)
+            except Exception as bridge_exc:
+                print(f"AZZAM711 bridge queue failed: {type(bridge_exc).__name__}: {bridge_exc}", flush=True)
         return
     if chat_type not in ("private", "group", "supergroup"):
         return
@@ -381,6 +388,7 @@ def main():
         raise SystemExit("Missing TELEGRAM_BOT_TOKEN environment variable")
     if not GEMINI_API_KEY:
         raise SystemExit("Missing GEMINI_API_KEY environment variable")
+    start_bridge_server()
     # Polling and webhook cannot run simultaneously for one Telegram bot token.
     telegram("deleteWebhook", {"drop_pending_updates": "false"})
     offset = None
