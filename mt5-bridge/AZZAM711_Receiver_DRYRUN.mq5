@@ -64,8 +64,16 @@ void PollBridge()
       return;
    }
 
-   string symbol = ExtractJsonString(body,"symbol");
-   string action = ExtractJsonString(body,"action");
+   // Queue API wraps the actual Telegram command inside the "command" object.
+   int commandPos = StringFind(body,"\\"command\\":{");
+   if(commandPos < 0)
+   {
+      Print("AZZAM711 BLOCKED: Missing command object. No trades. body=",body);
+      return;
+   }
+   string commandBody = StringSubstr(body,commandPos + StringLen("\\"command\\":"));
+   string symbol = ExtractJsonString(commandBody,"symbol");
+   string action = ExtractJsonString(commandBody,"action");
    if(symbol != "XAUUSD")
    {
       Print("AZZAM711 BLOCKED: Non-XAUUSD command received. No trades.");
