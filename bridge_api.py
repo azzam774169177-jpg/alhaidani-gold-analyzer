@@ -10,29 +10,38 @@ import json
 import os
 import sqlite3
 import threading
+from contextlib import contextmanager
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-DB_PATH = os.environ.get("BRIDGE_DB_PATH", "/data/azzam711_bridge.sqlite3")
+DB_PATH = os.environ.get("BRIDGE_DB_PATH", "azzam711_bridge.sqlite3")
 SECRET = os.environ.get("BRIDGE_SHARED_SECRET", "").strip()
 MAX_AGE = int(os.environ.get("BRIDGE_MAX_SIGNAL_AGE", "180"))
 DB_LOCK = threading.Lock()
 
 
+@contextmanager
 def db():
     conn = sqlite3.connect(DB_PATH, timeout=15)
-    conn.row_factory = sqlite3.Row
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS commands (
-            id TEXT PRIMARY KEY,
-            created_at REAL NOT NULL,
-            payload TEXT NOT NULL,
-            acked_at REAL
-        )
-    """)
-    conn.commit()
-    return conn
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS commands (
+                id TEXT PRIMARY KEY,
+                created_at REAL NOT NULL,
+                payload TEXT NOT NULL,
+                acked_at REAL
+            )
+        """)
+        conn.commit()
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def enqueue_command(command: dict) -> None:
