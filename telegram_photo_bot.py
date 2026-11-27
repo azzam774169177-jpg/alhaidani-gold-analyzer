@@ -384,7 +384,9 @@ def main():
     # Polling and webhook cannot run simultaneously for one Telegram bot token.
     telegram("deleteWebhook", {"drop_pending_updates": "false"})
     offset = None
-    print(f"Telegram XAUUSD photo-analysis worker started. GEMINI_API_KEY configured: {bool(GEMINI_API_KEY)}; configured model: {GEMINI_MODEL}", flush=True)
+    print("AZZAM711_TITANS_DEPLOY_CHECK_20261127_01", flush=True)
+    print(f"CHANNEL_ID configured: {bool(CHANNEL_ID)}; channel target: {CHANNEL_ID or 'NOT_SET'}", flush=True)
+    print(f"Telegram XAUUSD worker started. GEMINI_API_KEY configured: {bool(GEMINI_API_KEY)}; configured model: {GEMINI_MODEL}", flush=True)
     while True:
         try:
             params = {"timeout": 30, "allowed_updates": json.dumps(["message", "channel_post"])}
