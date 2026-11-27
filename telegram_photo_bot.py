@@ -12,6 +12,7 @@ import urllib.error
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 ALLOWED_CHAT = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID", "-1003960644699").strip()
+CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "").strip()
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite").strip()
 ACCESS_PASSWORD = os.environ.get("BOT_ACCESS_PASSWORD", "AS7112026").strip()
@@ -243,10 +244,60 @@ def analyze_images(images: list[tuple[bytes, str, str]]) -> str:
     return answer
 
 
+
+def parse_titans_command(text_message: str):
+    """Parse only the user's documented AZZAM711 TITANS channel commands."""
+    import re
+    text = (text_message or "").strip()
+    if not text:
+        return None
+
+    def price_after(label):
+        m = re.search(rf"(?im)^\s*{re.escape(label)}\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*$", text)
+        return float(m.group(1)) if m else None
+
+    if "صفقة بيع الذهب XAUUSD" in text:
+        entry, target, stop = price_after("🔴 الدخول"), price_after("🎯 هدفك"), price_after("🛑 استوبك")
+        if all(v is not None for v in (entry, target, stop)):
+            return {"action": "OPEN", "symbol": "XAUUSD", "side": "SELL", "entry": entry, "target": target, "stop_loss": stop}
+        return {"action": "REJECT", "reason": "INCOMPLETE_SELL_SIGNAL"}
+
+    if "صفقة شراء الذهب XAUUSD" in text:
+        entry, target, stop = price_after("🟢 الدخول"), price_after("🎯 هدفك"), price_after("🛑 استوبك")
+        if all(v is not None for v in (entry, target, stop)):
+            return {"action": "OPEN", "symbol": "XAUUSD", "side": "BUY", "entry": entry, "target": target, "stop_loss": stop}
+        return {"action": "REJECT", "reason": "INCOMPLETE_BUY_SIGNAL"}
+
+    if text.startswith("🎯  تأمين الدخول"):
+        return {"action": "MOVE_SL_TO_ENTRY", "symbol": "XAUUSD"}
+    if text.startswith("🎯  تأمين ارباح الهدف مع استمرار الصفقه"):
+        return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": price_after("حجز ارباح")}
+    if text.startswith("حرك استوبك:"):
+        value = price_after("حرك استوبك")
+        return {"action": "MOVE_SL", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_STOP_PRICE"}
+    if text.startswith("حجز ارباح:"):
+        value = price_after("حجز ارباح")
+        return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_LOCK_PRICE"}
+    if text == "تم هدفك ✅":
+        return {"action": "CLOSE_POSITION", "symbol": "XAUUSD"}
+    if text == "تم الغاء الصفقه 🤝🏻":
+        return {"action": "CANCEL_PENDING", "symbol": "XAUUSD"}
+    return None
+
+
 def handle_message(message: dict):
     global AUTHORIZED_USERS, PENDING_LAST_AT
     chat = message.get("chat") or {}
     chat_type = chat.get("type")
+    if chat_type == "channel":
+        if not CHANNEL_ID or str(chat.get("id")) != CHANNEL_ID:
+            return
+        command = parse_titans_command((message.get("text") or message.get("caption") or "").strip())
+        if command:
+            command["telegram_chat_id"] = str(chat.get("id"))
+            command["telegram_message_id"] = message.get("message_id")
+            print("AZZAM711_TITANS_COMMAND_PARSED " + json.dumps(command, ensure_ascii=False), flush=True)
+        return
     if chat_type not in ("private", "group", "supergroup"):
         return
     if chat_type in ("group", "supergroup") and ALLOWED_CHAT and str(chat.get("id")) != ALLOWED_CHAT:
@@ -336,13 +387,13 @@ def main():
     print(f"Telegram XAUUSD photo-analysis worker started. GEMINI_API_KEY configured: {bool(GEMINI_API_KEY)}; configured model: {GEMINI_MODEL}", flush=True)
     while True:
         try:
-            params = {"timeout": 30, "allowed_updates": json.dumps(["message"])}
+            params = {"timeout": 30, "allowed_updates": json.dumps(["message", "channel_post"])}
             if offset is not None:
                 params["offset"] = offset
             updates = telegram("getUpdates", params, timeout=40)
             for update in updates:
                 offset = int(update["update_id"]) + 1
-                message = update.get("message") or {}
+                message = update.get("message") or update.get("channel_post") or {}
                 handle_message(message)
                 flush_pending_photos()
             flush_pending_photos()
