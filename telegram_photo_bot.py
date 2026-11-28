@@ -296,16 +296,6 @@ def parse_titans_command(text_message: str):
     if compact in ("إلغاء الصفقة", "الغاء الصفقة"):
         return {"action": "CANCEL_PENDING", "symbol": "XAUUSD"}
 
-    btc_match = re.search(r"صفقة\\s+(بيع|شراء).*?BTCUSD", text, re.IGNORECASE)
-    if btc_match:
-        side = "SELL" if btc_match.group(1) == "بيع" else "BUY"
-        entry_label = "🔴 الدخول" if side == "SELL" else "🟢 الدخول"
-        entry, target, stop = price_after(entry_label), price_after("🎯 هدفك"), price_after("🛑 استوبك")
-        if all(v is not None for v in (entry, target, stop)):
-            return {"action": "OPEN", "symbol": "BTCUSD", "side": side,
-                    "entry": entry, "target": target, "stop_loss": stop}
-        return {"action": "REJECT", "reason": "INCOMPLETE_BTCUSD_SIGNAL"}
-
     if "صفقة بيع الذهب XAUUSD" in text:
         entry, target, stop = price_after("🔴 الدخول"), price_after("🎯 هدفك"), price_after("🛑 استوبك")
         if all(v is not None for v in (entry, target, stop)):
