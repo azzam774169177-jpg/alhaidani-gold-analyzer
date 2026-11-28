@@ -13,7 +13,7 @@ import threading
 from contextlib import contextmanager
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 DB_PATH = os.environ.get("BRIDGE_DB_PATH", "azzam711_bridge.sqlite3")
 SECRET = os.environ.get("BRIDGE_SHARED_SECRET", "").strip()
@@ -53,7 +53,7 @@ def enqueue_command(command: dict) -> None:
     allowed = {"OPEN", "OPEN_DIRECT", "MOVE_SL_TO_ENTRY", "MOVE_SL", "LOCK_PROFIT",
                "CLOSE_POSITION", "CANCEL_PENDING", "SET_SL", "SET_TP",
                "SET_SL_ALL", "SET_TP_ALL"}
-    if action not in allowed or command.get("symbol") not in {"XAUUSD", "BTCUSD"}:
+    if action not in allowed or command.get("symbol") != "XAUUSD":
         raise ValueError("Unsupported bridge command")
     if action == "OPEN_DIRECT" and command.get("side") not in {"BUY", "SELL"}:
         raise ValueError("Direct entry requires BUY or SELL side")
@@ -93,8 +93,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
+        path = urlparse(self.path).path
         if path == "/health":
             return self.reply(200, {"ok": True, "service": "AZZAM711 bridge queue"})
         if path != "/bridge/next":
@@ -107,22 +106,10 @@ class Handler(BaseHTTPRequestHandler):
                 "UPDATE commands SET acked_at=? WHERE acked_at IS NULL AND created_at < ?",
                 (now, now - MAX_AGE),
             )
-            requested_symbol = (parse_qs(parsed.query).get("symbol") or ["XAUUSD"])[0].upper()
-            if requested_symbol not in {"XAUUSD", "BTCUSD"}:
-                return self.reply(400, {"error": "unsupported_symbol"})
-            pending = conn.execute(
+            row = conn.execute(
                 "SELECT id, created_at, payload FROM commands "
-                "WHERE acked_at IS NULL ORDER BY created_at"
-            ).fetchall()
-            row = None
-            for candidate in pending:
-                try:
-                    payload = json.loads(candidate["payload"])
-                except (TypeError, json.JSONDecodeError):
-                    continue
-                if payload.get("symbol") == requested_symbol:
-                    row = candidate
-                    break
+                "WHERE acked_at IS NULL ORDER BY created_at LIMIT 1"
+            ).fetchone()
         if row is None:
             return self.reply(200, {"command": None})
         return self.reply(200, {
