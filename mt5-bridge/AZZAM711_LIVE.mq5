@@ -169,29 +169,55 @@ bool ApplyPriceToPosition(const ulong ticket,const bool set_stop,const double re
 
 void ProcessManagementCommand(const string action,const double price,const string id)
 {
-   bool set_stop=(action=="SET_SL" || action=="SET_SL_ALL");
-   bool all=(action=="SET_SL_ALL" || action=="SET_TP_ALL");
    ulong latest_ticket=0;
    long latest_time=-1;
-   if(!all)
+   for(int i=PositionsTotal()-1;i>=0;i--)
+   {
+      ulong ticket=PositionGetTicket(i);
+      if(ticket==0 || PositionGetString(POSITION_SYMBOL)!=TradeSymbol) continue;
+      long opened=(long)PositionGetInteger(POSITION_TIME_MSC);
+      if(opened>latest_time) { latest_time=opened; latest_ticket=ticket; }
+   }
+
+   int attempted=0,updated=0;
+   if(action=="CLOSE_POSITION")
+   {
+      if(latest_ticket>0 && trade.PositionClose(latest_ticket)) updated=1;
+      attempted=(latest_ticket>0 ? 1 : 0);
+   }
+   else if(action=="CANCEL_PENDING")
+   {
+      for(int i=OrdersTotal()-1;i>=0;i--)
+      {
+         ulong ticket=OrderGetTicket(i);
+         if(ticket==0 || OrderGetString(ORDER_SYMBOL)!=TradeSymbol) continue;
+         ENUM_ORDER_TYPE type=(ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE);
+         if(type==ORDER_TYPE_BUY_LIMIT || type==ORDER_TYPE_BUY_STOP ||
+            type==ORDER_TYPE_BUY_STOP_LIMIT || type==ORDER_TYPE_SELL_LIMIT ||
+            type==ORDER_TYPE_SELL_STOP || type==ORDER_TYPE_SELL_STOP_LIMIT)
+         {
+            attempted++;
+            if(trade.OrderDelete(ticket)) updated++;
+         }
+      }
+   }
+   else
    {
       for(int i=PositionsTotal()-1;i>=0;i--)
       {
          ulong ticket=PositionGetTicket(i);
          if(ticket==0 || PositionGetString(POSITION_SYMBOL)!=TradeSymbol) continue;
-         long opened=(long)PositionGetInteger(POSITION_TIME_MSC);
-         if(opened>latest_time) { latest_time=opened; latest_ticket=ticket; }
+         if(latest_ticket==0 || ticket!=latest_ticket) continue;
+
+         double requested=price;
+         if(action=="MOVE_SL_TO_ENTRY")
+            requested=PositionGetDouble(POSITION_PRICE_OPEN);
+         if(requested<=0) continue;
+         attempted++;
+         if(ApplyPriceToPosition(ticket,true,requested)) updated++;
       }
    }
-   int attempted=0,updated=0;
-   for(int i=PositionsTotal()-1;i>=0;i--)
-   {
-      ulong ticket=PositionGetTicket(i);
-      if(ticket==0 || PositionGetString(POSITION_SYMBOL)!=TradeSymbol) continue;
-      if(!all && ticket!=latest_ticket) continue;
-      attempted++;
-      if(ApplyPriceToPosition(ticket,set_stop,price)) updated++;
-   }
+
    Print("AZZAM711 management command ",action," id=",id,
          " requested=",price," updated=",updated," selected=",attempted);
    HttpAck(id);
@@ -229,12 +255,15 @@ void ProcessQueue()
       return;
    }
 
-   if(action=="SET_SL" || action=="SET_TP" || action=="SET_SL_ALL" || action=="SET_TP_ALL")
+   if(action=="SET_SL" || action=="SET_TP" || action=="SET_SL_ALL" || action=="SET_TP_ALL" ||
+      action=="MOVE_SL_TO_ENTRY" || action=="MOVE_SL" || action=="LOCK_PROFIT" ||
+      action=="CLOSE_POSITION" || action=="CANCEL_PENDING")
    {
       double requested=JsonNumber(command,"price");
-      if(requested<=0)
+      if((action=="SET_SL" || action=="SET_TP" || action=="SET_SL_ALL" || action=="SET_TP_ALL" ||
+          action=="MOVE_SL" || action=="LOCK_PROFIT") && requested<=0)
       {
-         Print("AZZAM711 BLOCKED: stop/target command has no valid price.");
+         Print("AZZAM711 BLOCKED: management command requires a valid price.");
          GlobalVariableSet(gv,TimeCurrent()); HttpAck(id); return;
       }
       ProcessManagementCommand(action,requested,id);
@@ -306,10 +335,27 @@ void ProcessQueue()
    trade.SetTypeFillingBySymbol(TradeSymbol);
    bool sent=false;
    string order_comment="AZZAM711 "+id;
-   if(side=="BUY")
-      sent=trade.Buy(TradeVolume,TradeSymbol,0.0,sl,tp,order_comment);
+   if(action=="OPEN_DIRECT")
+   {
+      if(side=="BUY") sent=trade.Buy(TradeVolume,TradeSymbol,0.0,0.0,0.0,order_comment);
+      else sent=trade.Sell(TradeVolume,TradeSymbol,0.0,0.0,0.0,order_comment);
+   }
    else
-      sent=trade.Sell(TradeVolume,TradeSymbol,0.0,sl,tp,order_comment);
+   {
+      double entry=JsonNumber(command,"entry");
+      int digits=(int)SymbolInfoInteger(TradeSymbol,SYMBOL_DIGITS);
+      entry=NormalizeDouble(entry,digits);
+      if(side=="BUY")
+      {
+         if(entry<tick.ask) sent=trade.BuyLimit(TradeVolume,entry,TradeSymbol,sl,tp,ORDER_TIME_GTC,0,order_comment);
+         else if(entry>tick.ask) sent=trade.BuyStop(TradeVolume,entry,TradeSymbol,sl,tp,ORDER_TIME_GTC,0,order_comment);
+      }
+      else
+      {
+         if(entry>tick.bid) sent=trade.SellLimit(TradeVolume,entry,TradeSymbol,sl,tp,ORDER_TIME_GTC,0,order_comment);
+         else if(entry<tick.bid) sent=trade.SellStop(TradeVolume,entry,TradeSymbol,sl,tp,ORDER_TIME_GTC,0,order_comment);
+      }
+   }
 
    uint rc=trade.ResultRetcode();
    if(sent && (rc==TRADE_RETCODE_DONE || rc==TRADE_RETCODE_PLACED || rc==TRADE_RETCODE_DONE_PARTIAL))
@@ -317,7 +363,7 @@ void ProcessQueue()
       GlobalVariableSet(gv,TimeCurrent());
       Print("AZZAM711 ORDER ACCEPTED: ",side," ",TradeSymbol,
             " volume=",TradeVolume," SL=",sl," TP=",tp," ticket=",trade.ResultOrder(),
-            action=="OPEN_DIRECT" ? " (DIRECT MARKET ENTRY; initially unprotected)" : "");
+            action=="OPEN_DIRECT" ? " (DIRECT MARKET ENTRY; initially unprotected)" : " (PENDING ENTRY)");
       HttpAck(id);
    }
    else
