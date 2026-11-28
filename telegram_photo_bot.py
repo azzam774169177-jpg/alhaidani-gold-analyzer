@@ -248,15 +248,38 @@ def analyze_images(images: list[tuple[bytes, str, str]]) -> str:
 
 
 def parse_titans_command(text_message: str):
-    """Parse only the user's documented AZZAM711 TITANS channel commands."""
+    """Parse documented AZZAM711 channel commands for direct entry and position management."""
     import re
     text = (text_message or "").strip()
     if not text:
         return None
 
     def price_after(label):
-        m = re.search(rf"(?im)^\s*{re.escape(label)}\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*$", text)
+        # Accept either "Label: 4020" or a price on the next line.
+        m = re.search(
+            rf"(?im)^\s*{re.escape(label)}\s*:\s*(?:\n\s*)?([0-9]+(?:\.[0-9]+)?)\s*$",
+            text,
+        )
         return float(m.group(1)) if m else None
+
+    if text in {"🔴 دخول بيع مباشر", "🔴 دخول بيع مباشر."}:
+        return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "SELL"}
+    if text in {"🟢 دخول شراء مباشر", "🟢 دخول شراء مباشر."}:
+        return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "BUY"}
+
+    value = price_after("🛑 استوب جميع الصفقات")
+    if value is not None:
+        return {"action": "SET_SL_ALL", "symbol": "XAUUSD", "price": value}
+    value = price_after("🎯 هدف جميع الصفقات")
+    if value is not None:
+        return {"action": "SET_TP_ALL", "symbol": "XAUUSD", "price": value}
+
+    value = price_after("🛑 استوبك")
+    if value is not None:
+        return {"action": "SET_SL", "symbol": "XAUUSD", "price": value}
+    value = price_after("🎯 هدفك")
+    if value is not None:
+        return {"action": "SET_TP", "symbol": "XAUUSD", "price": value}
 
     if "صفقة بيع الذهب XAUUSD" in text:
         entry, target, stop = price_after("🔴 الدخول"), price_after("🎯 هدفك"), price_after("🛑 استوبك")
