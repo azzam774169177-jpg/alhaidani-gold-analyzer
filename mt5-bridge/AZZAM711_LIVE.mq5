@@ -4,14 +4,14 @@
 //| Live trading is guarded by account, server, symbol and risk inputs|
 //+------------------------------------------------------------------+
 #property strict
-#property version   "1.10"
+#property version   "1.11"
 #property description "AZZAM711 authenticated live XAUUSD receiver"
 
 #include <Trade/Trade.mqh>
 CTrade trade;
 
 input string BridgeBaseUrl = "https://alhaidani-gold-photo-bot-production.up.railway.app";
-input string BridgeSecret = "";                 // Set privately in EA inputs; never share
+input string BridgeSecret = "";
 input long   RequiredAccountLogin = 28913511;
 input string RequiredServer = "Weltrade-Real";
 input string TradeSymbol = "XAUUSD";
