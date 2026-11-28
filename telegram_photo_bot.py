@@ -255,15 +255,14 @@ def parse_titans_command(text_message: str):
         return None
 
     def price_after(label):
-        m = re.search(
-            rf"(?im)^\\s*{re.escape(label)}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$",
-            text,
-        )
-        return float(m.group(1)) if m else None
+        pattern = r"(?im)^[ \t]*" + re.escape(label) + r"[ \t]*:[ \t]*([0-9]+(?:\\.[0-9]+)?)[ \t]*$"
+        match = re.search(pattern, text)
+        return float(match.group(1)) if match else None
 
-    if text.rstrip(".") == "🟢 دخول شراء مباشر":
+    compact = " ".join(text.rstrip(".").split())
+    if compact == "🟢 دخول شراء مباشر":
         return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "BUY"}
-    if text.rstrip(".") == "🔴 دخول بيع مباشر":
+    if compact == "🔴 دخول بيع مباشر":
         return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "SELL"}
 
     value = price_after("🛑 استوب جميع الصفقات")
@@ -273,11 +272,11 @@ def parse_titans_command(text_message: str):
     if value is not None:
         return {"action": "SET_TP_ALL", "symbol": "XAUUSD", "price": value}
 
-    if text.startswith("🎯 تأمين الدخول") or text.startswith("🎯  تأمين الدخول"):
+    if text.startswith("🎯 تأمين الدخول"):
         return {"action": "MOVE_SL_TO_ENTRY", "symbol": "XAUUSD"}
 
-    if text.startswith("🎯 تأمين أرباح الهدف مع استمرار الصفقة") or text.startswith("🎯  تأمين أرباح الهدف مع استمرار الصفقة"):
-        value = price_after("حجز أرباح")
+    if text.startswith("🎯 تأمين أرباح الهدف مع استمرار الصفقة"):
+        value = price_after("حجز أرباح") or price_after("حجز ارباح")
         if value is None:
             return {"action": "REJECT", "reason": "MISSING_ACHIEVED_TARGET_PRICE"}
         return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": value}
@@ -286,13 +285,15 @@ def parse_titans_command(text_message: str):
         value = price_after("حرك استوبك")
         return {"action": "MOVE_SL", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_STOP_PRICE"}
 
-    if text.startswith("حجز أرباح:") or text.startswith("حجز ارباح:"):
-        value = price_after("حجز أرباح") or price_after("حجز ارباح")
+    if text.startswith(("حجز أرباح:", "حجز ارباح:")):
+        value = price_after("حجز أرباح")
+        if value is None:
+            value = price_after("حجز ارباح")
         return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_LOCK_PRICE"}
 
-    if text == "خروج مباشر":
+    if compact == "خروج مباشر":
         return {"action": "CLOSE_POSITION", "symbol": "XAUUSD"}
-    if text == "إلغاء الصفقة" or text == "الغاء الصفقة":
+    if compact in ("إلغاء الصفقة", "الغاء الصفقة"):
         return {"action": "CANCEL_PENDING", "symbol": "XAUUSD"}
 
     if "صفقة بيع الذهب XAUUSD" in text:
