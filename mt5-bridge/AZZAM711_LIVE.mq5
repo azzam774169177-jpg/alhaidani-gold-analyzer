@@ -4,7 +4,7 @@
 //| Live trading is guarded by account, server, symbol and risk inputs|
 //+------------------------------------------------------------------+
 #property strict
-#property version   "1.11"
+#property version   "1.12"
 #property description "AZZAM711 authenticated live XAUUSD receiver"
 
 #include <Trade/Trade.mqh>
@@ -182,8 +182,13 @@ void ProcessManagementCommand(const string action,const double price,const strin
    int attempted=0,updated=0;
    if(action=="CLOSE_POSITION")
    {
-      if(latest_ticket>0 && trade.PositionClose(latest_ticket)) updated=1;
-      attempted=(latest_ticket>0 ? 1 : 0);
+      if(latest_ticket>0)
+      {
+         attempted=1;
+         if(trade.PositionClose(latest_ticket) &&
+            (trade.ResultRetcode()==TRADE_RETCODE_DONE ||
+             trade.ResultRetcode()==TRADE_RETCODE_DONE_PARTIAL)) updated=1;
+      }
    }
    else if(action=="CANCEL_PENDING")
    {
@@ -203,18 +208,21 @@ void ProcessManagementCommand(const string action,const double price,const strin
    }
    else
    {
+      bool all_positions=(action=="SET_SL_ALL" || action=="SET_TP_ALL");
+      bool set_stop=(action=="MOVE_SL_TO_ENTRY" || action=="MOVE_SL" ||
+                     action=="LOCK_PROFIT" || action=="SET_SL" || action=="SET_SL_ALL");
       for(int i=PositionsTotal()-1;i>=0;i--)
       {
          ulong ticket=PositionGetTicket(i);
          if(ticket==0 || PositionGetString(POSITION_SYMBOL)!=TradeSymbol) continue;
-         if(latest_ticket==0 || ticket!=latest_ticket) continue;
+         if(!all_positions && (latest_ticket==0 || ticket!=latest_ticket)) continue;
 
          double requested=price;
          if(action=="MOVE_SL_TO_ENTRY")
             requested=PositionGetDouble(POSITION_PRICE_OPEN);
          if(requested<=0) continue;
          attempted++;
-         if(ApplyPriceToPosition(ticket,true,requested)) updated++;
+         if(ApplyPriceToPosition(ticket,set_stop,requested)) updated++;
       }
    }
 
