@@ -255,7 +255,7 @@ def parse_titans_command(text_message: str):
         return None
 
     def price_after(label):
-        pattern = r"(?im)^[ \t]*" + re.escape(label) + r"[ \t]*:[ \t]*([0-9]+(?:\\.[0-9]+)?)[ \t]*$"
+        pattern = r"(?im)^[ \t]*" + re.escape(label) + r"[ \t]*:[ \t]*([0-9]+(?:[.][0-9]+)?)[ \t]*$"
         match = re.search(pattern, text)
         return float(match.group(1)) if match else None
 
