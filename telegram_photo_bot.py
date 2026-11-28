@@ -248,24 +248,23 @@ def analyze_images(images: list[tuple[bytes, str, str]]) -> str:
 
 
 def parse_titans_command(text_message: str):
-    """Parse documented AZZAM711 channel commands for direct entry and position management."""
+    """Parse AZZAM711 private-channel commands into authenticated MT5 queue actions."""
     import re
     text = (text_message or "").strip()
     if not text:
         return None
 
     def price_after(label):
-        # Accept either "Label: 4020" or a price on the next line.
         m = re.search(
-            rf"(?im)^\s*{re.escape(label)}\s*:\s*(?:\n\s*)?([0-9]+(?:\.[0-9]+)?)\s*$",
+            rf"(?im)^\\s*{re.escape(label)}\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)\\s*$",
             text,
         )
         return float(m.group(1)) if m else None
 
-    if text in {"🔴 دخول بيع مباشر", "🔴 دخول بيع مباشر."}:
-        return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "SELL"}
-    if text in {"🟢 دخول شراء مباشر", "🟢 دخول شراء مباشر."}:
+    if text.rstrip(".") == "🟢 دخول شراء مباشر":
         return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "BUY"}
+    if text.rstrip(".") == "🔴 دخول بيع مباشر":
+        return {"action": "OPEN_DIRECT", "symbol": "XAUUSD", "side": "SELL"}
 
     value = price_after("🛑 استوب جميع الصفقات")
     if value is not None:
@@ -274,12 +273,27 @@ def parse_titans_command(text_message: str):
     if value is not None:
         return {"action": "SET_TP_ALL", "symbol": "XAUUSD", "price": value}
 
-    value = price_after("🛑 استوبك")
-    if value is not None:
-        return {"action": "SET_SL", "symbol": "XAUUSD", "price": value}
-    value = price_after("🎯 هدفك")
-    if value is not None:
-        return {"action": "SET_TP", "symbol": "XAUUSD", "price": value}
+    if text.startswith("🎯 تأمين الدخول") or text.startswith("🎯  تأمين الدخول"):
+        return {"action": "MOVE_SL_TO_ENTRY", "symbol": "XAUUSD"}
+
+    if text.startswith("🎯 تأمين أرباح الهدف مع استمرار الصفقة") or text.startswith("🎯  تأمين أرباح الهدف مع استمرار الصفقة"):
+        value = price_after("حجز أرباح")
+        if value is None:
+            return {"action": "REJECT", "reason": "MISSING_ACHIEVED_TARGET_PRICE"}
+        return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": value}
+
+    if text.startswith("حرك استوبك:"):
+        value = price_after("حرك استوبك")
+        return {"action": "MOVE_SL", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_STOP_PRICE"}
+
+    if text.startswith("حجز أرباح:") or text.startswith("حجز ارباح:"):
+        value = price_after("حجز أرباح") or price_after("حجز ارباح")
+        return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_LOCK_PRICE"}
+
+    if text == "خروج مباشر":
+        return {"action": "CLOSE_POSITION", "symbol": "XAUUSD"}
+    if text == "إلغاء الصفقة" or text == "الغاء الصفقة":
+        return {"action": "CANCEL_PENDING", "symbol": "XAUUSD"}
 
     if "صفقة بيع الذهب XAUUSD" in text:
         entry, target, stop = price_after("🔴 الدخول"), price_after("🎯 هدفك"), price_after("🛑 استوبك")
@@ -292,21 +306,6 @@ def parse_titans_command(text_message: str):
         if all(v is not None for v in (entry, target, stop)):
             return {"action": "OPEN", "symbol": "XAUUSD", "side": "BUY", "entry": entry, "target": target, "stop_loss": stop}
         return {"action": "REJECT", "reason": "INCOMPLETE_BUY_SIGNAL"}
-
-    if text.startswith("🎯  تأمين الدخول"):
-        return {"action": "MOVE_SL_TO_ENTRY", "symbol": "XAUUSD"}
-    if text.startswith("🎯  تأمين ارباح الهدف مع استمرار الصفقه"):
-        return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": price_after("حجز ارباح")}
-    if text.startswith("حرك استوبك:"):
-        value = price_after("حرك استوبك")
-        return {"action": "MOVE_SL", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_STOP_PRICE"}
-    if text.startswith("حجز ارباح:"):
-        value = price_after("حجز ارباح")
-        return {"action": "LOCK_PROFIT", "symbol": "XAUUSD", "price": value} if value is not None else {"action": "REJECT", "reason": "MISSING_LOCK_PRICE"}
-    if text == "تم هدفك ✅":
-        return {"action": "CLOSE_POSITION", "symbol": "XAUUSD"}
-    if text == "تم الغاء الصفقه 🤝🏻":
-        return {"action": "CANCEL_PENDING", "symbol": "XAUUSD"}
     return None
 
 
