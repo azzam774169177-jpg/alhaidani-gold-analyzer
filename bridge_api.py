@@ -50,10 +50,20 @@ def enqueue_command(command: dict) -> None:
     if not chat_id or not message_id:
         raise ValueError("Missing Telegram message identity")
     action = command.get("action")
-    allowed = {"OPEN", "MOVE_SL_TO_ENTRY", "MOVE_SL", "LOCK_PROFIT",
-               "CLOSE_POSITION", "CANCEL_PENDING"}
+    allowed = {"OPEN", "OPEN_DIRECT", "MOVE_SL_TO_ENTRY", "MOVE_SL", "LOCK_PROFIT",
+               "CLOSE_POSITION", "CANCEL_PENDING", "SET_SL", "SET_TP",
+               "SET_SL_ALL", "SET_TP_ALL"}
     if action not in allowed or command.get("symbol") != "XAUUSD":
         raise ValueError("Unsupported bridge command")
+    if action == "OPEN_DIRECT" and command.get("side") not in {"BUY", "SELL"}:
+        raise ValueError("Direct entry requires BUY or SELL side")
+    if action in {"SET_SL", "SET_TP", "SET_SL_ALL", "SET_TP_ALL"}:
+        try:
+            price = float(command.get("price", 0))
+        except (TypeError, ValueError):
+            price = 0
+        if price <= 0:
+            raise ValueError("Stop/target update requires a positive price")
     key = chat_id + ":" + message_id
     with DB_LOCK, db() as conn:
         conn.execute(
